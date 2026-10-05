@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тренажёр PyQt5 — Умные заметки</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background-attachment: fixed;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -200px; left: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.12) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+h1 {
+  text-align: center;
+  padding: 20px 0 12px;
+  font-size: 24px;
+  background: linear-gradient(135deg, #38bdf8, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  position: relative; z-index: 1;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px 16px;
+  flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+
+.top-bar button {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  transition: all .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.btn-reset { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.btn-check { background: linear-gradient(135deg, #10b981, #059669); }
+.btn-hint { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.btn-code { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.top-bar button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+
+.main-container {
+  display: flex;
+  gap: 16px;
+  padding: 0 20px 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  align-items: flex-start;
+  position: relative; z-index: 1;
+}
+
+.palette {
+  width: 260px; min-width: 260px;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  position: sticky; top: 10px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.palette h3 {
+  font-size: 14px; margin-bottom: 12px;
+  color: #fbbf24; text-align: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding-bottom: 10px; font-weight: 600;
+}
+
+.palette-section { margin-bottom: 14px; }
+.palette-section h4 {
+  font-size: 10px; color: #94a3b8;
+  margin-bottom: 6px; text-transform: uppercase;
+  letter-spacing: 1px; font-weight: 600;
+}
+
+.palette-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; margin-bottom: 5px;
+  background: rgba(51, 65, 85, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px; cursor: grab;
+  user-select: none; transition: all .2s;
+}
+
+.palette-item:hover {
+  background: rgba(71, 85, 105, 0.7);
+  border-color: #38bdf8;
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+}
+
+.palette-item.used {
+  opacity: 0.3; cursor: not-allowed; pointer-events: none;
+}
+
+.palette-item .icon {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+  font-weight: 700; color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.icon-layout-h { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.icon-layout-v { background: linear-gradient(135deg, #10b981, #059669); }
+.icon-label { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.icon-button { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+.icon-list { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.icon-text { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.icon-line { background: linear-gradient(135deg, #ec4899, #db2777); }
+
+.palette-item .info {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+
+.palette-item .class-name {
+  font-size: 11px; font-weight: 700;
+  color: #38bdf8; white-space: nowrap;
+}
+
+.palette-item .var-name {
+  font-size: 10px; color: #94a3b8;
+  font-family: 'Consolas', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.palette-item .widget-text {
+  font-size: 9px; color: #64748b; font-style: italic;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.workspace { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+/* === НОВАЯ СТРУКТУРА: ЛЕВАЯ КОЛОНКА === */
+.workspace-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 0 0 300px;
+}
+
+.reference-panel, .canvas-panel, .structure-panel {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.reference-panel {
+  padding: 16px;
+  flex: 0 0 auto;
+}
+
+.canvas-panel {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.structure-panel {
+  padding: 16px;
+  flex: 1;
+  min-height: 300px;
+  overflow-y: auto;
+  position: static; /* Убрали sticky */
+}
+
+.reference-panel h3, .canvas-panel h3, .structure-panel h3 {
+  font-size: 14px; color: #fbbf24;
+  margin-bottom: 12px; text-align: center; font-weight: 600;
+}
+
+.ref-svg-container {
+  width: 100%; background: #f1f5f9;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.app-window {
+  background: #f8fafc; border-radius: 10px;
+  border: 2px solid #cbd5e1;
+  min-height: 550px; overflow: hidden; width: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  flex: 1;
+}
+
+.app-titlebar {
+  background: linear-gradient(to bottom, #f1f5f9, #e2e8f0);
+  padding: 8px 12px; display: flex;
+  align-items: center; gap: 6px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.titlebar-dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot-red { background: #ff5f57; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green { background: #28c840; }
+
+.titlebar-text {
+  flex: 1; text-align: center;
+  font-size: 12px; color: #475569; font-weight: 600;
+}
+
+.app-content { padding: 12px; min-height: 520px; background: #f1f5f9; }
+
+.drop-zone {
+  border: 3px dashed #94a3b8; border-radius: 10px;
+  padding: 12px; transition: all .2s; position: relative;
+  background: rgba(241, 245, 249, 0.5); min-height: 500px;
+}
+
+.drop-zone.drag-over {
+  border-color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.15) !important;
+  box-shadow: inset 0 0 25px rgba(251, 191, 36, 0.3);
+}
+
+.drop-zone-hint {
+  text-align: center; font-size: 14px;
+  color: #64748b; padding: 80px 10px; pointer-events: none;
+}
+
+.placed-layout {
+  border: 3px solid; border-radius: 10px;
+  margin: 6px; position: relative;
+  animation: fadeIn .2s ease;
+}
+
+.placed-layout-h {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  min-height: 80px; padding: 24px 12px 12px;
+}
+
+.placed-layout-v {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  min-height: 250px; padding: 24px 12px 12px;
+}
+
+.layout-tag {
+  position: absolute; top: -11px; left: 10px;
+  padding: 3px 12px; font-size: 11px;
+  font-weight: 700; border-radius: 5px;
+  color: #fff; z-index: 5; white-space: nowrap;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.layout-tag-h { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.layout-tag-v { background: linear-gradient(135deg, #10b981, #059669); }
+
+.layout-remove {
+  position: absolute; top: -10px; right: 10px;
+  width: 20px; height: 20px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff; border: none; border-radius: 50%;
+  font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10; line-height: 1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform .15s;
+}
+
+.layout-remove:hover { transform: scale(1.15); }
+
+.layout-content {
+  display: flex; gap: 8px; padding: 12px;
+  min-height: 80px;
+  border: 2px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 8px; transition: all .2s ease; position: relative;
+}
+
+.layout-content-v { flex-direction: column; min-height: 200px; }
+.layout-content-h { flex-direction: row; align-items: center; min-height: 70px; }
+
+.layout-content.drag-over {
+  border: 3px solid #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.25) !important;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 15px rgba(251, 191, 36, 0.3) !important;
+}
+
+.layout-content-hint {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px; font-weight: 600;
+  color: rgba(251, 191, 36, 0.9);
+  pointer-events: none; text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.placed-widget {
+  margin: 4px; border-radius: 6px;
+  position: relative; animation: fadeIn .2s ease;
+  z-index: 2; overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.placed-widget .widget-header {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px; color: #fff;
+  font-family: 'Consolas', monospace; letter-spacing: 0.3px;
+}
+
+.placed-widget .widget-body { padding: 5px 10px; font-size: 11px; }
+
+.placed-widget .remove-btn {
+  position: absolute; top: -6px; right: -6px;
+  width: 16px; height: 16px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff; border: none; border-radius: 50%;
+  font-size: 9px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.placed-widget:hover .remove-btn { display: flex; }
+
+.pw-label .widget-header { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.pw-label .widget-body { background: transparent; color: #334155; font-weight: 600; font-size: 12px; }
+
+.pw-button .widget-header { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+.pw-button .widget-body {
+  background: linear-gradient(to bottom, #ffffff, #f1f5f9);
+  color: #334155; padding: 6px 14px;
+  border-top: 1px solid #e2e8f0; font-size: 11px; white-space: nowrap;
+}
+.pw-button.full-width .widget-body { width: 100%; text-align: center; }
+
+.pw-list .widget-header { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.pw-list .widget-body {
+  background: #fff; color: #334155; padding: 10px;
+  min-width: 130px; min-height: 60px;
+  border-top: 1px solid #e2e8f0; font-size: 11px;
+}
+
+.pw-text .widget-header { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.pw-text .widget-body {
+  background: #fff; color: #334155; padding: 10px;
+  min-width: 160px; min-height: 100px;
+  border-top: 1px solid #e2e8f0; font-size: 11px; flex: 1;
+}
+
+.pw-line .widget-header { background: linear-gradient(135deg, #ec4899, #db2777); }
+.pw-line .widget-body {
+  background: #fff; color: #64748b; padding: 6px 10px;
+  min-width: 150px; border-top: 1px solid #e2e8f0;
+  font-size: 11px; width: 100%;
+}
+
+.tree-node {
+  padding: 5px 8px; margin: 2px 0;
+  font-size: 11px; border-radius: 6px;
+  border-left: 3px solid transparent; transition: background .15s;
+}
+.tree-node:hover { background: rgba(148, 163, 184, 0.1); }
+
+.tree-node.t-widget { border-left-color: #3b82f6; background: rgba(59, 130, 246, 0.08); }
+.tree-node.t-layout-h { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.tree-node.t-layout-v { border-left-color: #10b981; background: rgba(16, 185, 129, 0.08); }
+.tree-node.t-label { border-left-color: #a78bfa; background: rgba(167, 139, 250, 0.08); }
+.tree-node.t-button { border-left-color: #f43f5e; background: rgba(244, 63, 94, 0.08); }
+.tree-node.t-list { border-left-color: #06b6d4; background: rgba(6, 182, 212, 0.08); }
+.tree-node.t-text { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.tree-node.t-line { border-left-color: #ec4899; background: rgba(236, 72, 153, 0.08); }
+
+.tree-node .tn-class {
+  font-weight: 700; color: #38bdf8;
+  font-family: 'Consolas', monospace; font-size: 10px;
+}
+.tree-node .tn-var {
+  color: #cbd5e1; font-family: 'Consolas', monospace; font-size: 10px;
+}
+
+.tree-children {
+  margin-left: 16px;
+  border-left: 1px dashed rgba(148, 163, 184, 0.3);
+  padding-left: 4px;
+}
+
+.hint-panel, .result-panel {
+  display: none; border-radius: 10px;
+  padding: 14px 18px; margin: 0 20px 12px;
+  font-size: 12px; line-height: 1.7;
+  max-width: 1560px; margin-left: auto; margin-right: auto;
+  position: relative; z-index: 1;
+}
+
+.hint-panel.visible {
+  display: block;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24; backdrop-filter: blur(8px);
+}
+
+.result-panel.visible { display: block; }
+.result-panel.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399; backdrop-filter: blur(8px);
+}
+.result-panel.fail {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171; backdrop-filter: blur(8px);
+}
+
+.modal-overlay {
+  display: none; position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 1000; align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px; padding: 24px;
+  max-width: 700px; width: 90%;
+  max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.modal h3 { color: #fbbf24; margin-bottom: 14px; text-align: center; font-weight: 600; }
+
+.modal pre {
+  background: #0f172a; padding: 16px;
+  border-radius: 8px; font-size: 12px; line-height: 1.6;
+  overflow-x: auto; color: #e2e8f0; white-space: pre-wrap;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.modal .close-modal {
+  display: block; margin: 14px auto 0;
+  padding: 9px 24px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: all .2s;
+}
+.modal .close-modal:hover { transform: translateY(-2px); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+</style>
+</head>
+<body>
+
+<h1>Тренажёр: Сборка интерфейса «Умные заметки» на PyQt5</h1>
+
+<div class="top-bar">
+  <button class="btn-reset" onclick="resetCanvas()">🗑 Сбросить всё</button>
+  <button class="btn-hint" onclick="toggleHint()">💡 Подсказка</button>
+  <button class="btn-check" onclick="checkLayout()">✅ Проверить</button>
+  <button class="btn-code" onclick="showCode()">📄 Показать код</button>
+</div>
+
+<div class="hint-panel" id="hintPanel">
+  <strong>Порядок сборки:</strong><br>
+  1️⃣ Перетащи <b>QHBoxLayout</b> в главное окно<br>
+  2️ Перетащи два <b>QVBoxLayout</b> внутрь (col_1 и col_2 встанут рядом)<br>
+  3️⃣ В col_1 перетащи <b>QTextEdit</b><br>
+  4️⃣ В col_2 перетащи по порядку: QLabel → QListWidget → QHBoxLayout(2 кнопки) → QHBoxLayout(1 кнопка) → QLabel → QListWidget → QLineEdit → QHBoxLayout(2 кнопки) → QHBoxLayout(1 кнопка)
+</div>
+
+<div class="result-panel" id="resultPanel"></div>
+
+<div class="main-container">
+
+  <div class="palette">
+    <h3> Кладовка виджетов</h3>
+
+    <div class="palette-section">
+      <h4>Макеты (Layouts)</h4>
+      <div class="palette-item" draggable="true" data-type="layout-h" data-name="layout_notes" data-class="QHBoxLayout" data-unique="true">
+        <div class="icon icon-layout-h">↔</div>
+        <div class="info">
+          <span class="class-name">QHBoxLayout</span>
+          <span class="var-name">layout_notes (главный)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-v" data-name="col_1" data-class="QVBoxLayout" data-unique="true">
+        <div class="icon icon-layout-v">↕</div>
+        <div class="info">
+          <span class="class-name">QVBoxLayout</span>
+          <span class="var-name">col_1 (левая колонка)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-v" data-name="col_2" data-class="QVBoxLayout" data-unique="true">
+        <div class="icon icon-layout-v">↕</div>
+        <div class="info">
+          <span class="class-name">QVBoxLayout</span>
+          <span class="var-name">col_2 (правая колонка)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-h" data-name="row_1" data-class="QHBoxLayout" data-unique="true">
+        <div class="icon icon-layout-h"></div>
+        <div class="info">
+          <span class="class-name">QHBoxLayout</span>
+          <span class="var-name">row_1 (2 кнопки)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-h" data-name="row_2" data-class="QHBoxLayout" data-unique="true">
+        <div class="icon icon-layout-h"></div>
+        <div class="info">
+          <span class="class-name">QHBoxLayout</span>
+          <span class="var-name">row_2 (1 кнопка)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-h" data-name="row_3" data-class="QHBoxLayout" data-unique="true">
+        <div class="icon icon-layout-h"></div>
+        <div class="info">
+          <span class="class-name">QHBoxLayout</span>
+          <span class="var-name">row_3 (2 кнопки)</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="layout-h" data-name="row_4" data-class="QHBoxLayout" data-unique="true">
+        <div class="icon icon-layout-h">↔</div>
+        <div class="info">
+          <span class="class-name">QHBoxLayout</span>
+          <span class="var-name">row_4 (1 кнопка)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette-section">
+      <h4>Виджеты (Widgets)</h4>
+      <div class="palette-item" draggable="true" data-type="label" data-name="list_notes_label" data-class="QLabel" data-text="Список заметок" data-unique="true">
+        <div class="icon icon-label">🏷</div>
+        <div class="info">
+          <span class="class-name">QLabel</span>
+          <span class="var-name">list_notes_label</span>
+          <span class="widget-text">текст: "Список заметок"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="label" data-name="list_tags_label" data-class="QLabel" data-text="Список тегов" data-unique="true">
+        <div class="icon icon-label">🏷</div>
+        <div class="info">
+          <span class="class-name">QLabel</span>
+          <span class="var-name">list_tags_label</span>
+          <span class="widget-text">текст: "Список тегов"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="list" data-name="list_notes" data-class="QListWidget" data-unique="true">
+        <div class="icon icon-list"></div>
+        <div class="info">
+          <span class="class-name">QListWidget</span>
+          <span class="var-name">list_notes</span>
+          <span class="widget-text">список заметок</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_note_create" data-class="QPushButton" data-text="Создать заметку" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_note_create</span>
+          <span class="widget-text">текст: "Создать заметку"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_note_del" data-class="QPushButton" data-text="Удалить заметку" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_note_del</span>
+          <span class="widget-text">текст: "Удалить заметку"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_note_save" data-class="QPushButton" data-text="Сохранить заметку" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_note_save</span>
+          <span class="widget-text">текст: "Сохранить заметку"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="list" data-name="list_tags" data-class="QListWidget" data-unique="true">
+        <div class="icon icon-list"></div>
+        <div class="info">
+          <span class="class-name">QListWidget</span>
+          <span class="var-name">list_tags</span>
+          <span class="widget-text">список тегов</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="line" data-name="field_tag" data-class="QLineEdit" data-text="Введите тег..." data-unique="true">
+        <div class="icon icon-line">✏️</div>
+        <div class="info">
+          <span class="class-name">QLineEdit</span>
+          <span class="var-name">field_tag</span>
+          <span class="widget-text">placeholder: "Введите тег..."</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_tag_add" data-class="QPushButton" data-text="Добавить к заметке" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_tag_add</span>
+          <span class="widget-text">текст: "Добавить к заметке"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_tag_del" data-class="QPushButton" data-text="Открепить от заметки" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_tag_del</span>
+          <span class="widget-text">текст: "Открепить от заметки"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="button" data-name="button_tag_search" data-class="QPushButton" data-text="Искать заметки по тегу" data-unique="true">
+        <div class="icon icon-button">🔘</div>
+        <div class="info">
+          <span class="class-name">QPushButton</span>
+          <span class="var-name">button_tag_search</span>
+          <span class="widget-text">текст: "Искать заметки по тегу"</span>
+        </div>
+      </div>
+      <div class="palette-item" draggable="true" data-type="text" data-name="field_text" data-class="QTextEdit" data-unique="true">
+        <div class="icon icon-text">📝</div>
+        <div class="info">
+          <span class="class-name">QTextEdit</span>
+          <span class="var-name">field_text</span>
+          <span class="widget-text">поле редактирования текста</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="workspace-row">
+      
+      <!-- ЛЕВАЯ КОЛОНКА: Образец + Дерево -->
+      <div class="left-column">
+        <div class="reference-panel">
+          <h3>🖼 Образец</h3>
+          <div class="ref-svg-container">
+            <svg viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg" width="100%">
+              <rect x="5" y="5" width="390" height="270" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+              <rect x="5" y="5" width="390" height="18" rx="5" fill="#e2e8f0"/>
+              <circle cx="16" cy="14" r="4" fill="#ff5f57"/>
+              <circle cx="28" cy="14" r="4" fill="#ffbd2e"/>
+              <circle cx="40" cy="14" r="4" fill="#28c840"/>
+              <text x="200" y="17" text-anchor="middle" font-size="9" fill="#475569" font-weight="bold">Умные заметки</text>
+              <rect x="12" y="28" width="200" height="240" rx="2" fill="#fff" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="220" y="40" font-size="8" fill="#334155" font-weight="bold">Список заметок</text>
+              <rect x="220" y="43" width="165" height="55" rx="2" fill="#fff" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="225" y="55" font-size="7" fill="#334155">Добро пожаловать!</text>
+              <rect x="220" y="103" width="78" height="15" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="228" y="113" font-size="6" fill="#334155">Создать заметку</text>
+              <rect x="303" y="103" width="82" height="15" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="311" y="113" font-size="6" fill="#334155">Удалить заметку</text>
+              <rect x="220" y="123" width="165" height="15" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="275" y="133" font-size="6" fill="#334155">Сохранить заметку</text>
+              <text x="220" y="155" font-size="8" fill="#334155" font-weight="bold">Список тегов</text>
+              <rect x="220" y="158" width="165" height="55" rx="2" fill="#fff" stroke="#cbd5e1" stroke-width="1"/>
+              <rect x="220" y="218" width="165" height="15" rx="2" fill="#fff" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="225" y="228" font-size="6" fill="#94a3b8">Введите тег...</text>
+              <rect x="220" y="238" width="78" height="15" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="227" y="248" font-size="5.5" fill="#334155">Добавить к заметке</text>
+              <rect x="303" y="238" width="82" height="15" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="310" y="248" font-size="5.5" fill="#334155">Открепить от заметки</text>
+              <rect x="220" y="258" width="165" height="13" rx="2" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+              <text x="270" y="267" font-size="6" fill="#334155">Искать заметки по тегу</text>
+              <rect x="10" y="26" width="204" height="244" rx="3" fill="none" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+              <rect x="218" y="26" width="169" height="244" rx="3" fill="none" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+              <rect x="8" y="24" width="381" height="248" rx="3" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" opacity="0.3"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="structure-panel">
+          <h3>🌳 Дерево виджетов</h3>
+          <div id="structureTree">
+            <div class="tree-node t-widget" style="font-weight:bold;">notes_win (QWidget)</div>
+            <div class="tree-children" id="treeChildren">
+              <div class="tree-node" style="color:#64748b; font-style:italic;">Пусто — добавь QHBoxLayout</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ПРАВАЯ КОЛОНКА: Холст сборки -->
+      <div class="canvas-panel">
+        <h3>🔨 Холст сборки</h3>
+        <div class="app-window">
+          <div class="app-titlebar">
+            <div class="titlebar-dot dot-red"></div>
+            <div class="titlebar-dot dot-yellow"></div>
+            <div class="titlebar-dot dot-green"></div>
+            <div class="titlebar-text">Умные заметки</div>
+          </div>
+          <div class="app-content">
+            <div class="drop-zone" id="mainDropZone">
+              <div class="drop-zone-hint">⬇ Перетащи сюда QHBoxLayout<br><small style="color:#94a3b8">Здесь появится большой оранжевый контейнер</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="codeModal">
+  <div class="modal">
+    <h3>📄 Сгенерированный код PyQt5</h3>
+    <pre id="codeOutput"></pre>
+    <button class="close-modal" onclick="closeModal()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+let widgetCounter = 0;
+let dragData = null;
+let usedNames = new Set();
+
+document.querySelectorAll('.palette-item').forEach(item => {
+  item.addEventListener('dragstart', function(e) {
+    if (this.dataset.unique === 'true' && usedNames.has(this.dataset.name)) {
+      e.preventDefault();
+      return;
+    }
+    dragData = {
+      type: this.dataset.type,
+      name: this.dataset.name,
+      text: this.dataset.text || '',
+      className: this.dataset.class || '',
+      unique: this.dataset.unique === 'true'
+    };
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', 'widget');
+    setTimeout(() => { this.style.opacity = '0.4'; }, 0);
+  });
+
+  item.addEventListener('dragend', function(e) {
+    this.style.opacity = '';
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  });
+});
+
+document.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  if (!target) return;
+  const zone = findDropZone(target);
+  document.querySelectorAll('.drag-over').forEach(el => {
+    if (el !== zone) el.classList.remove('drag-over');
+  });
+  if (zone) zone.classList.add('drag-over');
+});
+
+document.addEventListener('drop', function(e) {
+  e.preventDefault();
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  if (!target) return;
+  const zone = findDropZone(target);
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  if (zone && dragData) {
+    if (dragData.unique && usedNames.has(dragData.name)) {
+      alert('Этот элемент уже добавлен!');
+      dragData = null;
+      return;
+    }
+    placeWidget(zone, dragData);
+  }
+  dragData = null;
+});
+
+function findDropZone(el) {
+  let current = el;
+  while (current && current !== document.body) {
+    if (current.classList && (current.classList.contains('drop-zone') || current.classList.contains('layout-content'))) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function placeWidget(zone, data) {
+  const hint = zone.querySelector('.drop-zone-hint, .layout-content-hint');
+  if (hint) hint.remove();
+
+  widgetCounter++;
+  const id = 'w' + widgetCounter;
+
+  if (data.unique) {
+    usedNames.add(data.name);
+    updatePaletteState();
+  }
+
+  if (data.type === 'layout-h' || data.type === 'layout-v') {
+    const layout = document.createElement('div');
+    const cls = data.type === 'layout-h' ? 'h' : 'v';
+    layout.className = 'placed-layout placed-layout-' + cls;
+    layout.id = id;
+    layout.dataset.type = data.type;
+    layout.dataset.name = data.name;
+
+    const tag = document.createElement('div');
+    tag.className = 'layout-tag layout-tag-' + cls;
+    tag.textContent = data.className + ' (' + data.name + ')';
+    layout.appendChild(tag);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'layout-remove';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = function(e) { e.stopPropagation(); removeWidget(id, data.name, data.unique); };
+    layout.appendChild(removeBtn);
+
+    const content = document.createElement('div');
+    content.className = 'layout-content layout-content-' + cls;
+    content.id = id + '_content';
+    const contentHint = document.createElement('div');
+    contentHint.className = 'layout-content-hint';
+    contentHint.textContent = '⬇ брось виджеты сюда';
+    content.appendChild(contentHint);
+
+    layout.appendChild(content);
+    zone.appendChild(layout);
+
+  } else {
+    const widget = document.createElement('div');
+    widget.className = 'placed-widget pw-' + data.type;
+    widget.id = id;
+    widget.dataset.type = data.type;
+    widget.dataset.name = data.name;
+    widget.dataset.text = data.text;
+    widget.dataset.classname = data.className;
+
+    const header = document.createElement('div');
+    header.className = 'widget-header';
+    header.textContent = data.className + ' — ' + data.name;
+
+    const body = document.createElement('div');
+    body.className = 'widget-body';
+
+    if (data.type === 'label') body.textContent = data.text;
+    else if (data.type === 'button') body.textContent = data.text;
+    else if (data.type === 'list') body.textContent = '(список)';
+    else if (data.type === 'text') body.textContent = '(текстовое поле)';
+    else if (data.type === 'line') body.textContent = data.text || '(поле ввода)';
+
+    widget.appendChild(header);
+    widget.appendChild(body);
+
+    if (data.name === 'button_tag_search') widget.classList.add('full-width');
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = function(e) { e.stopPropagation(); removeWidget(id, data.name, data.unique); };
+    widget.appendChild(removeBtn);
+
+    zone.appendChild(widget);
+  }
+
+  updateStructure();
+}
+
+function collectNames(container) {
+  const names = [];
+  if (!container) return names;
+  Array.from(container.querySelectorAll('.placed-widget')).forEach(w => {
+    if (w.dataset.name) names.push(w.dataset.name);
+  });
+  Array.from(container.querySelectorAll('.placed-layout')).forEach(l => {
+    if (l.dataset.name) names.push(l.dataset.name);
+  });
+  return names;
+}
+
+function removeWidget(id, name, isUnique) {
+  const el = document.getElementById(id);
+  if (el) {
+    const allNames = collectNames(el);
+    if (name) allNames.push(name);
+    el.remove();
+    allNames.forEach(n => usedNames.delete(n));
+    updatePaletteState();
+    updateStructure();
+  }
+}
+
+function updatePaletteState() {
+  document.querySelectorAll('.palette-item').forEach(item => {
+    if (item.dataset.unique === 'true' && usedNames.has(item.dataset.name)) {
+      item.classList.add('used');
+      item.setAttribute('draggable', 'false');
+    } else {
+      item.classList.remove('used');
+      item.setAttribute('draggable', 'true');
+    }
+  });
+}
+
+function updateStructure() {
+  const treeChildren = document.getElementById('treeChildren');
+  treeChildren.innerHTML = '';
+  const mainZone = document.getElementById('mainDropZone');
+  const children = scanChildren(mainZone);
+
+  if (children.length === 0) {
+    treeChildren.innerHTML = '<div class="tree-node" style="color:#64748b; font-style:italic;">Пусто — добавь QHBoxLayout</div>';
+    return;
+  }
+
+  children.forEach(child => renderTreeNode(child, treeChildren));
+}
+
+function scanChildren(container) {
+  const result = [];
+  Array.from(container.children).forEach(el => {
+    if (el.classList.contains('placed-layout')) {
+      const content = el.querySelector(':scope > .layout-content');
+      const tag = el.querySelector('.layout-tag');
+      const className = tag ? tag.textContent.split(' (')[0] : '';
+      result.push({
+        type: el.dataset.type,
+        name: el.dataset.name,
+        className: className,
+        children: content ? scanChildren(content) : []
+      });
+    } else if (el.classList.contains('placed-widget')) {
+      result.push({
+        type: el.dataset.type,
+        name: el.dataset.name,
+        text: el.dataset.text || '',
+        className: el.dataset.classname || ''
+      });
+    }
+  });
+  return result;
+}
+
+function renderTreeNode(node, container) {
+  const typeClass = {
+    'widget': 't-widget', 'layout-h': 't-layout-h', 'layout-v': 't-layout-v',
+    'label': 't-label', 'button': 't-button', 'list': 't-list',
+    'text': 't-text', 'line': 't-line'
+  }[node.type] || 't-widget';
+
+  const div = document.createElement('div');
+  div.className = 'tree-node ' + typeClass;
+
+  const classSpan = document.createElement('span');
+  classSpan.className = 'tn-class';
+  classSpan.textContent = node.className || node.type;
+
+  const varSpan = document.createElement('span');
+  varSpan.className = 'tn-var';
+  varSpan.textContent = ' ' + node.name;
+
+  div.appendChild(classSpan);
+  div.appendChild(varSpan);
+
+  if (node.text) {
+    const textSpan = document.createElement('div');
+    textSpan.style.fontSize = '9px';
+    textSpan.style.color = '#64748b';
+    textSpan.style.marginLeft = '4px';
+    textSpan.textContent = '"' + node.text + '"';
+    div.appendChild(textSpan);
+  }
+
+  container.appendChild(div);
+
+  if (node.children && node.children.length > 0) {
+    const sub = document.createElement('div');
+    sub.className = 'tree-children';
+    node.children.forEach(c => renderTreeNode(c, sub));
+    container.appendChild(sub);
+  }
+}
+
+function resetCanvas() {
+  const mainZone = document.getElementById('mainDropZone');
+  mainZone.innerHTML = '<div class="drop-zone-hint">⬇ Перетащи сюда QHBoxLayout<br><small style="color:#94a3b8">Здесь появится большой оранжевый контейнер</small></div>';
+  widgetCounter = 0;
+  usedNames.clear();
+  updatePaletteState();
+  updateStructure();
+  const rp = document.getElementById('resultPanel');
+  rp.className = 'result-panel';
+  rp.style.display = 'none';
+}
+
+function toggleHint() {
+  document.getElementById('hintPanel').classList.toggle('visible');
+}
+
+function getAllWidgets(node) {
+  const result = [];
+  if (node.children) {
+    node.children.forEach(c => {
+      if (c.type !== 'layout-h' && c.type !== 'layout-v') {
+        result.push(c);
+      }
+      if (c.children) {
+        result.push.apply(result, getAllWidgets(c));
+      }
+    });
+  }
+  return result;
+}
+
+function checkLayout() {
+  const mainZone = document.getElementById('mainDropZone');
+  const children = scanChildren(mainZone);
+  const result = document.getElementById('resultPanel');
+  let errors = [];
+  let score = 0;
+
+  if (children.length === 1 && children[0].type === 'layout-h') {
+    score += 2;
+    const mainLayout = children[0];
+
+    if (mainLayout.children.length >= 2) {
+      score += 2;
+      const col1 = mainLayout.children[0];
+      const col2 = mainLayout.children[1];
+
+      if (col1 && col1.type === 'layout-v') {
+        score += 1;
+        if (col1.children.some(c => c.type === 'text')) score += 1;
+        else errors.push('В col_1 нет QTextEdit');
+      } else {
+        errors.push('col_1 должен быть QVBoxLayout');
+      }
+
+      if (col2 && col2.type === 'layout-v') {
+        score += 1;
+
+        const allItems = col2.children;
+        const hLayouts = allItems.filter(c => c.type === 'layout-h');
+        const widgets = getAllWidgets(col2);
+
+        if (allItems.some(c => c.type === 'label' && c.name === 'list_notes_label')) score += 0.5;
+        else errors.push('Нет QLabel list_notes_label');
+
+        if (allItems.some(c => c.type === 'list' && c.name === 'list_notes')) score += 0.5;
+        else errors.push('Нет QListWidget list_notes');
+
+        if (hLayouts.length >= 4) {
+          score += 1;
+        } else {
+          errors.push('Нужно 4 QHBoxLayout в col_2 (row_1, row_2, row_3, row_4), найдено: ' + hLayouts.length);
+        }
+
+        if (allItems.some(c => c.type === 'label' && c.name === 'list_tags_label')) score += 0.5;
+        else errors.push('Нет QLabel list_tags_label');
+
+        if (allItems.some(c => c.type === 'list' && c.name === 'list_tags')) score += 0.5;
+        else errors.push('Нет QListWidget list_tags');
+
+        if (allItems.some(c => c.type === 'line')) score += 0.5;
+        else errors.push('Нет QLineEdit field_tag');
+
+        const neededBtns = [
+          { name: 'button_note_create', text: 'Создать заметку' },
+          { name: 'button_note_del', text: 'Удалить заметку' },
+          { name: 'button_note_save', text: 'Сохранить заметку' },
+          { name: 'button_tag_add', text: 'Добавить к заметке' },
+          { name: 'button_tag_del', text: 'Открепить от заметки' },
+          { name: 'button_tag_search', text: 'Искать заметки по тегу' }
+        ];
+
+        neededBtns.forEach(btn => {
+          if (widgets.some(c => c.type === 'button' && c.name === btn.name)) score += 0.3;
+          else errors.push('Нет QPushButton ' + btn.name);
+        });
+
+      } else {
+        errors.push('col_2 должен быть QVBoxLayout');
+      }
+    } else {
+      errors.push('В главном QHBoxLayout должно быть 2 элемента');
+    }
+  } else {
+    errors.push('В notes_win должен быть один QHBoxLayout');
+  }
+
+  const maxScore = 12;
+  const pct = Math.round(Math.min(score, maxScore) / maxScore * 100);
+
+  result.style.display = 'block';
+  if (pct >= 80) {
+    result.className = 'result-panel visible success';
+    result.textContent = '✅ Отлично! ' + pct + '% совпадение.' + (errors.length > 0 ? ' Мелочи: ' + errors.slice(0, 3).join('; ') : ' Всё идеально!');
+  } else if (pct >= 40) {
+    result.className = 'result-panel visible fail';
+    result.textContent = '⚠️ ' + pct + '% — неплохое начало! Ошибки: ' + errors.slice(0, 4).join('; ');
+  } else {
+    result.className = 'result-panel visible fail';
+    result.textContent = '❌ ' + pct + '% — нужно больше работы. Ошибки: ' + errors.slice(0, 5).join('; ');
+  }
+}
+
+function showCode() {
+  const mainZone = document.getElementById('mainDropZone');
+  const children = scanChildren(mainZone);
+  let code = "from PyQt5.QtWidgets import *\nfrom PyQt5.QtCore import Qt\n\napp = QApplication([])\n\nnotes_win = QWidget()\nnotes_win.setWindowTitle('Умные заметки')\n\n";
+
+  function genCreation(node, indent) {
+    const pad = '    '.repeat(indent);
+    if (node.type === 'layout-h') {
+      code += pad + node.name + " = QHBoxLayout()\n";
+      node.children.forEach(c => genCreation(c, indent));
+    } else if (node.type === 'layout-v') {
+      code += pad + node.name + " = QVBoxLayout()\n";
+      node.children.forEach(c => genCreation(c, indent));
+    } else if (node.type === 'label') {
+      code += pad + node.name + " = QLabel('" + node.text + "')\n";
+    } else if (node.type === 'button') {
+      code += pad + node.name + " = QPushButton('" + node.text + "')\n";
+    } else if (node.type === 'list') {
+      code += pad + node.name + " = QListWidget()\n";
+    } else if (node.type === 'text') {
+      code += pad + node.name + " = QTextEdit()\n";
+    } else if (node.type === 'line') {
+      code += pad + node.name + " = QLineEdit()\n";
+      code += pad + node.name + ".setPlaceholderText('" + node.text + "')\n";
+    }
+  }
+
+  function genAddWidgets(node, indent) {
+    const pad = '    '.repeat(indent);
+    if (node.type === 'layout-h' || node.type === 'layout-v') {
+      node.children.forEach(child => {
+        if (child.type === 'layout-h' || child.type === 'layout-v') {
+          code += pad + node.name + ".addLayout(" + child.name + ")\n";
+        } else {
+          code += pad + node.name + ".addWidget(" + child.name + ")\n";
+        }
+        if (child.children) {
+          genAddWidgets(child, indent);
+        }
+      });
+    }
+  }
+
+  children.forEach(c => genCreation(c, 1));
+  code += "\n";
+  children.forEach(c => genAddWidgets(c, 1));
+  if (children.length > 0) {
+    code += "\nnotes_win.setLayout(" + children[0].name + ")\n";
+  }
+  code += "\nnotes_win.resize(900, 600)\nnotes_win.show()\napp.exec_()\n";
+
+  document.getElementById('codeOutput').textContent = code;
+  document.getElementById('codeModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('codeModal').classList.remove('active');
+}
+
+document.getElementById('codeModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+updateStructure();
+</script>
+
+</body>
+</html>
