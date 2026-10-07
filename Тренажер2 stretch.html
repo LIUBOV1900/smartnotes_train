@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр: stretch, addStretch, setSpacing</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .trainer {
+        max-width: 1100px;
+        width: 100%;
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+        color: #667eea;
+        text-align: center;
+        font-size: 1.8em;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #764ba2;
+        margin-bottom: 20px;
+        font-size: 1em;
+    }
+
+    .mode-switcher {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .mode-btn {
+        padding: 10px 20px;
+        background: #f0f0f0;
+        border: 2px solid #667eea;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #667eea;
+        transition: all 0.3s;
+        font-size: 0.95em;
+    }
+
+    .mode-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .mode-btn:hover { transform: scale(1.05); }
+
+    .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 800px) {
+        .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 4px solid #667eea;
+    }
+
+    .panel h2 {
+        color: #764ba2;
+        font-size: 1.2em;
+        margin-bottom: 12px;
+    }
+
+    .control-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0;
+        flex-wrap: wrap;
+    }
+
+    .control-row label {
+        min-width: 140px;
+        font-weight: bold;
+        color: #333;
+        font-size: 0.9em;
+    }
+
+    .control-row input[type="range"] {
+        flex: 1;
+        min-width: 100px;
+    }
+
+    .control-row .value {
+        min-width: 30px;
+        text-align: center;
+        font-weight: bold;
+        color: #667eea;
+        background: white;
+        padding: 4px 8px;
+        border-radius: 5px;
+        border: 1px solid #667eea;
+    }
+
+    .spacer-btn {
+        padding: 8px 14px;
+        background: #ffc107;
+        color: #333;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.85em;
+        transition: all 0.2s;
+    }
+
+    .spacer-btn:hover { transform: scale(1.05); }
+    .spacer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .spacer-btn.remove {
+        background: #f44336;
+        color: white;
+    }
+
+    /* Визуализация layout */
+    .layout-preview {
+        background: white;
+        border: 3px dashed #999;
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 200px;
+        position: relative;
+    }
+
+    .layout-preview.vertical {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .layout-preview.horizontal {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+        min-height: 120px;
+    }
+
+    .layout-item {
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9em;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .layout-item.widget {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: 2px solid #667eea;
+    }
+
+    .layout-item.spacer {
+        background: repeating-linear-gradient(
+            45deg,
+            #ffe082,
+            #ffe082 10px,
+            #ffca28 10px,
+            #ffca28 20px
+        );
+        color: #5d4037;
+        border: 2px dashed #f57c00;
+    }
+
+    .layout-item .percent {
+        position: absolute;
+        bottom: 2px;
+        right: 5px;
+        font-size: 0.75em;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        padding: 1px 5px;
+        border-radius: 3px;
+    }
+
+    /* Формула и объяснение */
+    .formula-box {
+        background: #e8f5e9;
+        border-left: 5px solid #4caf50;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 12px 0;
+        font-family: 'Consolas', monospace;
+        font-size: 0.95em;
+    }
+
+    .formula-box .highlight {
+        background: yellow;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+    }
+
+    .legend {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin: 10px 0;
+        font-size: 0.85em;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid #667eea;
+    }
+
+    .legend-color.spacer {
+        background: repeating-linear-gradient(
+            45deg,
+            #ffe082,
+            #ffe082 5px,
+            #ffca28 5px,
+            #ffca28 10px
+        );
+        border-color: #f57c00;
+    }
+
+    .info-tip {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 0.9em;
+    }
+
+    .spacing-display {
+        text-align: center;
+        font-size: 1.1em;
+        color: #764ba2;
+        font-weight: bold;
+        margin: 8px 0;
+    }
+
+    .spacing-arrows {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        margin: 5px 0;
+        font-size: 0.85em;
+        color: #f44336;
+    }
+</style>
+</head>
+<body>
+<div class="trainer">
+    <h1>🎛️ Тренажёр: stretch, addStretch, setSpacing</h1>
+    <p class="subtitle">Меняй параметры — смотри, как меняется layout в реальном времени</p>
+
+    <div class="mode-switcher">
+        <button class="mode-btn active" data-mode="vertical">📏 Вертикальный (layout_card)</button>
+        <button class="mode-btn" data-mode="horizontal">️ Горизонтальный (layout_line3)</button>
+    </div>
+
+    <div class="main-grid">
+        <!-- Панель управления -->
+        <div class="panel">
+            <h2>⚙️ Управление</h2>
+
+            <div class="control-row">
+                <label>📐 setSpacing:</label>
+                <input type="range" id="spacing" min="0" max="30" value="5">
+                <span class="value" id="spacing-val">5</span>
+            </div>
+
+            <div id="widgets-controls">
+                <!-- Динамически заполняется -->
+            </div>
+
+            <div style="margin-top: 15px; border-top: 2px solid #ddd; padding-top: 12px;">
+                <p style="font-weight: bold; margin-bottom: 8px; color: #764ba2;">🌀 Пружинки addStretch():</p>
+                <div class="control-row">
+                    <button class="spacer-btn" id="add-top">➕ Пружинка СВЕРХУ</button>
+                    <button class="spacer-btn remove" id="remove-top" disabled>➖ Убрать</button>
+                </div>
+                <div class="control-row">
+                    <button class="spacer-btn" id="add-bottom">➕ Пружинка СНИЗУ</button>
+                    <button class="spacer-btn remove" id="remove-bottom" disabled>➖ Убрать</button>
+                </div>
+            </div>
+
+            <div class="formula-box">
+                <strong>📊 Формула:</strong><br>
+                Доля элемента = <span class="highlight">stretch_i / сумма всех stretch</span><br><br>
+                <span id="formula-calc"></span>
+            </div>
+        </div>
+
+        <!-- Визуализация -->
+        <div class="panel">
+            <h2>👁️ Как выглядит layout</h2>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color"></div>
+                    <span>Виджет (кнопка, текст)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color spacer"></div>
+                    <span>Пружинка addStretch()</span>
+                </div>
+            </div>
+
+            <div class="spacing-display">
+                spacing = <span id="spacing-display">5</span>px между элементами
+            </div>
+
+            <div class="layout-preview vertical" id="layout-preview">
+                <!-- Динамически заполняется -->
+            </div>
+
+            <div class="info-tip">
+                <strong>💡 Подсказка:</strong> <span id="tip-text">Пружинки растягиваются и занимают свободное место, отодвигая виджеты.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top: 10px;">
+        <h2>📝 Что происходит в коде</h2>
+        <div class="formula-box" id="code-display" style="background: #1e1e1e; color: #d4d4d4; font-family: Consolas, monospace;">
+            <!-- Динамически -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Состояние
+    let mode = 'vertical';
+    let spacing = 5;
+    let hasTopSpacer = false;
+    let hasBottomSpacer = false;
+
+    // Виджеты по умолчанию
+    const defaultWidgets = {
+        vertical: [
+            { name: 'Вопрос (text)', stretch: 2, color: '#667eea' },
+            { name: 'Варианты (RadioBox)', stretch: 8, color: '#764ba2' },
+            { name: 'Кнопка OK', stretch: 1, color: '#4caf50' }
+        ],
+        horizontal: [
+            { name: 'Пружинка', stretch: 1, isSpacer: true },
+            { name: 'Кнопка OK', stretch: 2, color: '#667eea' },
+            { name: 'Пружинка', stretch: 1, isSpacer: true }
+        ]
+    };
+
+    let widgets = JSON.parse(JSON.stringify(defaultWidgets.vertical));
+
+    // Элементы DOM
+    const spacingSlider = document.getElementById('spacing');
+    const spacingVal = document.getElementById('spacing-val');
+    const spacingDisplay = document.getElementById('spacing-display');
+    const widgetsControls = document.getElementById('widgets-controls');
+    const layoutPreview = document.getElementById('layout-preview');
+    const formulaCalc = document.getElementById('formula-calc');
+    const codeDisplay = document.getElementById('code-display');
+    const tipText = document.getElementById('tip-text');
+
+    // Переключение режима
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            mode = btn.dataset.mode;
+            widgets = JSON.parse(JSON.stringify(defaultWidgets[mode]));
+            hasTopSpacer = false;
+            hasBottomSpacer = false;
+            updateSpacerButtons();
+            render();
+        });
+    });
+
+    // Spacing
+    spacingSlider.addEventListener('input', () => {
+        spacing = parseInt(spacingSlider.value);
+        spacingVal.textContent = spacing;
+        spacingDisplay.textContent = spacing;
+        render();
+    });
+
+    // Пружинки
+    document.getElementById('add-top').addEventListener('click', () => {
+        if (mode === 'vertical') {
+            hasTopSpacer = true;
+        } else {
+            // В горизонтальном режиме уже есть пружинки по краям — меняем stretch
+            if (widgets[0].isSpacer) widgets[0].stretch = Math.min(widgets[0].stretch + 1, 10);
+        }
+        updateSpacerButtons();
+        render();
+    });
+
+    document.getElementById('remove-top').addEventListener('click', () => {
+        if (mode === 'vertical') {
+            hasTopSpacer = false;
+        } else {
+            if (widgets[0].isSpacer) widgets[0].stretch = Math.max(widgets[0].stretch - 1, 0);
+        }
+        updateSpacerButtons();
+        render();
+    });
+
+    document.getElementById('add-bottom').addEventListener('click', () => {
+        if (mode === 'vertical') {
+            hasBottomSpacer = true;
+        } else {
+            const last = widgets[widgets.length - 1];
+            if (last.isSpacer) last.stretch = Math.min(last.stretch + 1, 10);
+        }
+        updateSpacerButtons();
+        render();
+    });
+
+    document.getElementById('remove-bottom').addEventListener('click', () => {
+        if (mode === 'vertical') {
+            hasBottomSpacer = false;
+        } else {
+            const last = widgets[widgets.length - 1];
+            if (last.isSpacer) last.stretch = Math.max(last.stretch - 1, 0);
+        }
+        updateSpacerButtons();
+        render();
+    });
+
+    function updateSpacerButtons() {
+        if (mode === 'vertical') {
+            document.getElementById('add-top').disabled = hasTopSpacer;
+            document.getElementById('remove-top').disabled = !hasTopSpacer;
+            document.getElementById('add-bottom').disabled = hasBottomSpacer;
+            document.getElementById('remove-bottom').disabled = !hasBottomSpacer;
+        } else {
+            // В горизонтальном режиме кнопки управляют stretch крайних пружинок
+            const firstSpacer = widgets[0].isSpacer;
+            const lastSpacer = widgets[widgets.length - 1].isSpacer;
+            document.getElementById('add-top').textContent = '➕ Усилить левую пружинку';
+            document.getElementById('remove-top').textContent = '➖ Ослабить';
+            document.getElementById('add-bottom').textContent = '➕ Усилить правую пружинку';
+            document.getElementById('remove-bottom').textContent = '➖ Ослабить';
+            document.getElementById('add-top').disabled = !firstSpacer || widgets[0].stretch >= 10;
+            document.getElementById('remove-top').disabled = !firstSpacer || widgets[0].stretch <= 0;
+            document.getElementById('add-bottom').disabled = !lastSpacer || widgets[widgets.length-1].stretch >= 10;
+            document.getElementById('remove-bottom').disabled = !lastSpacer || widgets[widgets.length-1].stretch <= 0;
+        }
+    }
+
+    function render() {
+        renderControls();
+        renderPreview();
+        renderFormula();
+        renderCode();
+        updateTip();
+    }
+
+    function renderControls() {
+        widgetsControls.innerHTML = '';
+        widgets.forEach((w, i) => {
+            const row = document.createElement('div');
+            row.className = 'control-row';
+            row.innerHTML = `
+                <label>${w.isSpacer ? '🌀' : '📦'} ${w.name}:</label>
+                <input type="range" min="0" max="20" value="${w.stretch}" data-idx="${i}">
+                <span class="value">${w.stretch}</span>
+            `;
+            widgetsControls.appendChild(row);
+            row.querySelector('input').addEventListener('input', (e) => {
+                widgets[i].stretch = parseInt(e.target.value);
+                row.querySelector('.value').textContent = e.target.value;
+                render();
+            });
+        });
+    }
+
+    function renderPreview() {
+        layoutPreview.className = 'layout-preview ' + mode;
+        layoutPreview.style.gap = spacing + 'px';
+        layoutPreview.innerHTML = '';
+
+        // Собираем полный список элементов (с пружинками сверху/снизу для вертикального)
+        const items = [];
+        if (mode === 'vertical') {
+            if (hasTopSpacer) items.push({ name: 'addStretch()', stretch: 1, isSpacer: true });
+            widgets.forEach(w => items.push(w));
+            if (hasBottomSpacer) items.push({ name: 'addStretch()', stretch: 1, isSpacer: true });
+        } else {
+            widgets.forEach(w => items.push(w));
+        }
+
+        const totalStretch = items.reduce((s, i) => s + i.stretch, 0);
+
+        items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'layout-item ' + (item.isSpacer ? 'spacer' : 'widget');
+
+            if (mode === 'vertical') {
+                // Высота пропорциональна stretch
+                const percent = totalStretch > 0 ? (item.stretch / totalStretch * 100) : 0;
+                el.style.flex = item.stretch;
+                el.style.minHeight = '20px';
+                el.innerHTML = `
+                    <span>${item.name}</span>
+                    <span class="percent">${percent.toFixed(1)}%</span>
+                `;
+            } else {
+                // Ширина пропорциональна stretch
+                const percent = totalStretch > 0 ? (item.stretch / totalStretch * 100) : 0;
+                el.style.flex = item.stretch;
+                el.style.minWidth = '20px';
+                el.style.height = '100%';
+                el.innerHTML = `
+                    <span>${item.name}</span>
+                    <span class="percent">${percent.toFixed(1)}%</span>
+                `;
+            }
+
+            layoutPreview.appendChild(el);
+        });
+    }
+
+    function renderFormula() {
+        const items = getFullItemsList();
+        const total = items.reduce((s, i) => s + i.stretch, 0);
+
+        if (total === 0) {
+            formulaCalc.innerHTML = '<em>Сумма stretch = 0. Ничего не отображается.</em>';
+            return;
+        }
+
+        let html = `<strong>Сумма stretch:</strong> ${items.map(i => i.stretch).join(' + ')} = <span class="highlight">${total}</span><br><br>`;
+        html += '<strong>Доли:</strong><br>';
+        items.forEach(item => {
+            const percent = (item.stretch / total * 100).toFixed(1);
+            const color = item.isSpacer ? '#f57c00' : '#667eea';
+            html += `• ${item.name}: ${item.stretch}/${total} = <span style="color:${color}; font-weight:bold;">${percent}%</span><br>`;
+        });
+        formulaCalc.innerHTML = html;
+    }
+
+    function renderCode() {
+        const items = getFullItemsList();
+        let code = '';
+
+        if (mode === 'vertical') {
+            code = `<span style="color:#66d9ef">layout_card</span> = <span style="color:#dcdcaa">QVBoxLayout</span>()\n`;
+            code += `<span style="color:#66d9ef">layout_card</span>.<span style="color:#dcdcaa">setSpacing</span>(<span style="color:#e6db74">${spacing}</span>)\n\n`;
+            items.forEach(item => {
+                if (item.isSpacer) {
+                    code += `<span style="color:#66d9ef">layout_card</span>.<span style="color:#dcdcaa">addStretch</span>(<span style="color:#e6db74">${item.stretch}</span>)\n`;
+                } else {
+                    code += `<span style="color:#66d9ef">layout_card</span>.<span style="color:#dcdcaa">addLayout</span>(${item.name.replace(/[^a-zA-Z_]/g,'')}, stretch=<span style="color:#e6db74">${item.stretch}</span>)\n`;
+                }
+            });
+        } else {
+            code = `<span style="color:#66d9ef">layout_line3</span> = <span style="color:#dcdcaa">QHBoxLayout</span>()\n`;
+            code += `<span style="color:#66d9ef">layout_line3</span>.<span style="color:#dcdcaa">setSpacing</span>(<span style="color:#e6db74">${spacing}</span>)\n\n`;
+            items.forEach(item => {
+                if (item.isSpacer) {
+                    code += `<span style="color:#66d9ef">layout_line3</span>.<span style="color:#dcdcaa">addStretch</span>(<span style="color:#e6db74">${item.stretch}</span>)\n`;
+                } else {
+                    code += `<span style="color:#66d9ef">layout_line3</span>.<span style="color:#dcdcaa">addWidget</span>(btn_OK, stretch=<span style="color:#e6db74">${item.stretch}</span>)\n`;
+                }
+            });
+        }
+
+        codeDisplay.innerHTML = code;
+    }
+
+    function getFullItemsList() {
+        const items = [];
+        if (mode === 'vertical') {
+            if (hasTopSpacer) items.push({ name: 'addStretch()', stretch: 1, isSpacer: true });
+            widgets.forEach(w => items.push(w));
+            if (hasBottomSpacer) items.push({ name: 'addStretch()', stretch: 1, isSpacer: true });
+        } else {
+            widgets.forEach(w => items.push(w));
+        }
+        return items;
+    }
+
+    function updateTip() {
+        const tips = {
+            vertical: hasTopSpacer && hasBottomSpacer
+                ? 'Две пружинки по краям → кнопка прижата к центру по вертикали!'
+                : hasTopSpacer
+                ? 'Пружинка сверху → всё содержимое сдвинулось вниз.'
+                : hasBottomSpacer
+                ? 'Пружинка снизу → всё содержимое прижалось к верху.'
+                : 'Без пружинок всё прижато к верху. Добавь пружинки, чтобы управлять расположением!',
+            horizontal: 'Пружинки по бокам центрируют кнопку. Увеличь stretch одной — кнопка сдвинется!'
+        };
+        tipText.textContent = tips[mode];
+    }
+
+    // Инициализация
+    updateSpacerButtons();
+    render();
+</script>
+</body>
+</html>
