@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажер: разметка окна (PyQt5)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f7f9fc;font-family:'Segoe UI',Tahoma,sans-serif;color:#222;padding:10px 14px;user-select:none}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+header h1{font-size:17px}
+.mbtn{border:1px solid #b5b5b5;background:linear-gradient(#fdfdfd,#e2e2e2);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+.mbtn:hover{background:#fff}
+main{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+#stageWrap{display:flex;flex-direction:column;gap:8px;flex:none}
+#methodNote{display:none;background:#eaf3ff;border:2px solid #7fb2e6;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.45;color:#123a63}
+#methodNote.show{display:block}
+#commentBar{display:none;background:linear-gradient(#fff7d6,#ffe9a8);border:2px solid #e6a817;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;line-height:1.45;width:560px;max-width:96vw;color:#4a3000;box-shadow:0 3px 10px #e6a81733}
+#commentBar.show{display:block}
+#commentBar.attn{animation:attn .8s}
+@keyframes attn{0%{box-shadow:0 0 0 0 #e6a81788}50%{box-shadow:0 0 0 8px #e6a81722}100%{box-shadow:0 3px 10px #e6a81733}}
+#controlBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eef2f7;border:1px solid #d5dce6;border-radius:8px;padding:6px 10px;font-size:13px;min-height:42px;width:560px;max-width:96vw}
+#controlBar .mbtn{padding:4px 10px}
+#controlBar label{display:flex;gap:4px;align-items:center;cursor:pointer}
+#windowMock{width:560px;max-width:96vw;background:#ececec;border:1px solid #8f8f8f;border-radius:8px;box-shadow:0 8px 22px #0003;position:relative}
+#windowMock.finished{border-color:#57a05a;box-shadow:0 0 0 3px #57a05a33,0 8px 22px #0003}
+.titlebar{display:flex;align-items:center;gap:7px;padding:8px 12px;background:linear-gradient(#f6f6f6,#d9d9d9);border-bottom:1px solid #bbb;font-size:13px}
+.titlebar b{flex:1;text-align:center;font-weight:600;color:#444}
+.td{width:13px;height:13px;border-radius:50%}
+.td.r{background:#e5534b}.td.y{background:#e8b53a}.td.g{background:#57c15a}
+.body{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px 16px;min-height:440px}
+.w.q{text-align:center;font-weight:700;font-size:17px;padding:6px}
+.w.btn{flex:2;text-align:center;padding:7px 10px;background:#fbfbfb;border:1px solid #999;border-radius:7px;font-size:15px}
+.st{flex:1;border-top:2px dotted #9a9a9a;position:relative;margin:0 6px}
+.st::after{content:'stretch(1)';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font:9px monospace;color:#9a9a9a}
+.gbwrap{margin:2px 26px}
+.gbwrap.bare .gbtitle{visibility:hidden}
+.gbwrap.bare .gbpanel{background:transparent;border-color:transparent}
+.gbtitle{font-weight:700;font-size:14px;margin:0 0 4px 4px}
+.gbpanel{background:#e4e4e4;border:1px solid #d0d0d0;border-radius:8px;padding:16px 12px;min-height:150px}
+.rb{display:flex;gap:9px;align-items:center;font-size:15px;padding:2px 4px}
+.cir{width:17px;height:17px;border-radius:50%;background:#fff;border:2px solid #a9a9a9;box-shadow:inset 0 1px 2px #0002;flex:none}
+.rb.checked .cir{border:6px solid #79a548}
+.guide{position:relative;margin:6px;padding:8px;border:2px dashed transparent;border-radius:8px}
+.guide .tag{display:none;position:absolute;top:-11px;left:10px;font:600 11px/1.5 monospace;color:#fff;padding:0 7px;border-radius:9px;background:var(--gc,#888);z-index:3}
+.guide.on{border-color:var(--gc)}
+.guide.on .tag{display:block}
+#g_ans1>.tag{left:auto;right:10px}
+.row{display:flex;align-items:center;gap:10px}
+.col{display:flex;flex-direction:column;gap:14px}
+.guide.row>.guide,.guide.row>.zone{flex:1}
+#g_line2{flex:1}
+.cardov{position:absolute;inset:6px;pointer-events:none;margin:0}
+.settled .guide{border-color:transparent!important}
+.settled .tag,.settled .st::after{display:none}
+.settled #g_line3{margin-top:26px}
+.settled .gbwrap{margin:2px 32px}
+.zone{border:2px dashed #b5b5b5;border-radius:8px;color:#8a8a8a;font-size:12px;display:flex;align-items:center;justify-content:center;min-height:36px;margin:4px;padding:6px;text-align:center;background:#f4f4f4b0}
+.zone.tall{min-height:190px}
+.zone.colz{min-height:130px}
+.zone.hover{border-color:#2f7fd6;color:#2f7fd6;background:#e8f1fc}
+.zone.bad{border-color:#d64c4c;background:#fdeaea}
+.zone.cardz{position:absolute;inset:8px;min-height:0;z-index:5;background:transparent;border:2px dashed #8a5cf5;margin:0}
+.zone.cardz::after{content:'layout_card ↕';position:absolute;top:-12px;right:12px;background:#8a5cf5;color:#fff;font:600 11px monospace;padding:2px 8px;border-radius:9px}
+.zone.cardz.hover{border-color:#57a05a;background:#57a05a11}
+#rightCol{display:flex;flex-direction:column;gap:10px;width:290px;flex:none}
+#palette{background:#fff;border:1px solid #d5dce6;border-radius:10px;padding:10px;box-shadow:0 4px 12px #0001}
+#palette h3{font-size:13px;margin:6px 2px;color:#445}
+#palette .hint{font-size:11px;color:#789;margin:2px 2px 6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--gc,#777);border-radius:8px;background:#fff;padding:4px 8px;font:600 12px monospace;cursor:grab;margin:4px;box-shadow:0 2px 3px #0002;transform:rotate(-1.5deg);touch-action:none}
+.chip:nth-child(even){transform:rotate(1.6deg)}
+.chip .arr{font-size:14px}
+.chip.made{box-shadow:0 0 0 3px #ffd75f99;border-color:#c9a227;background:#fffbe6}
+.chip.used{opacity:.22;pointer-events:none;box-shadow:none}
+.chip.dragging{opacity:.45}
+.ghost{position:fixed;z-index:999;pointer-events:none;margin:0;transform:rotate(0);box-shadow:0 6px 14px #0004;opacity:.95}
+#treeBox{display:none;background:#eef7ee;border:1px solid #bcd9bc;border-radius:10px;padding:8px 10px;font:10.5px/1.5 monospace;white-space:pre;overflow-x:auto}
+#treeBox.show{display:block}
+#schemaBox{width:560px;max-width:96vw;border-radius:10px;border:1px solid #0a1526;box-shadow:0 8px 22px #0004;display:none;flex:none}
+#schemaBox svg{display:block;border-radius:10px;width:560px;height:542px}
+#schemaBox .part{opacity:0}
+#schemaBox .part.on{opacity:1}
+#schemaBox .draw{stroke-dasharray:1;stroke-dashoffset:1}
+#schemaBox .part.on .draw{animation:dash 1.2s ease forwards}
+@keyframes dash{to{stroke-dashoffset:0}}
+#schemaBox .ball{transform:scale(0);transform-box:fill-box;transform-origin:center}
+#schemaBox .part.on .ball{animation:pop2 .6s .3s forwards}
+@keyframes pop2{to{transform:scale(1)}}
+#schemaBox text{font:11px monospace;fill:#cfe8ff}
+#schemaBox .fade{opacity:0}
+#schemaBox .part.on .fade{animation:fadein .8s .4s forwards}
+@keyframes fadein{to{opacity:1}}
+#theoryBox{display:none;width:560px;max-width:96vw;max-height:calc(100vh - 110px);overflow:auto;flex:none}
+.thSec{background:#fff;border:1px solid #d5dce6;border-radius:10px;padding:10px 12px;margin-bottom:8px;box-shadow:0 2px 8px #0001}
+.thSec h3{font-size:14px;margin:0 0 6px;color:#123a63}
+.thSec pre{background:#232323;color:#ddd;border-radius:8px;padding:8px 10px;font:12px/1.55 monospace;white-space:pre-wrap;margin:0 0 6px}
+.thSec p{font-size:13px;line-height:1.5;margin:4px 0;color:#333}
+#codePanel{width:420px;flex:none;background:#232323;color:#ddd;border-radius:10px;padding:10px 12px;font:12.5px/1.55 monospace;overflow:auto;max-height:calc(100vh - 60px)}
+#codePanel h4{color:#9cf;font-size:12px;margin:2px 0 6px}
+.cl{white-space:pre-wrap;padding:0 6px;border-radius:4px;border-left:3px solid transparent}
+.cl.hl{background:#ffd75f;color:#222}
+.cl.done{border-left-color:#57c15a;color:#9f9}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#222;color:#ffe08a;font:600 13px monospace;padding:9px 14px;border-radius:10px;opacity:0;transition:.3s;z-index:1000;pointer-events:none;box-shadow:0 4px 14px #0006;max-width:90vw}
+#toast.show{opacity:1}
+.hidden{opacity:0;pointer-events:none}
+.pop{animation:pop .45s}
+@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.flash{animation:fl 1.4s}
+@keyframes fl{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 5px #e08a2e88}}
+#cursorDeco{position:absolute;right:70px;bottom:34px;width:70px;display:none;filter:drop-shadow(2px 3px 2px #0005)}
+#cursorDeco.show{display:block}
+</style>
+</head>
+<body>
+<header>
+ <h1>🧩 Тренажер «Разметка окна» (PyQt5)</h1>
+ <button class="mbtn" id="mDemo">▶ Демонстрация</button>
+ <button class="mbtn" id="mPractice">🛠 Самостоятельная</button>
+ <button class="mbtn" id="mSchema">🎄 Схема</button>
+ <button class="mbtn" id="mTheory">📖 Теория</button>
+ <button class="mbtn" id="mReset">⟲ Сброс</button>
+</header>
+<main>
+ <div id="stageWrap">
+   <div id="controlBar"></div>
+   <div id="windowMock"></div>
+   <div id="schemaBox"></div>
+   <div id="theoryBox">
+     <div class="thSec"><h3>1. Создание виджетов — то, что видит пользователь</h3>
+<pre>btn_OK = QPushButton('Ответить')               # кнопка
+lb_Question = QLabel('деревня')                # надпись (текст)
+RadioGroupBox = QGroupBox("Варианты ответов")  # рамка-группа с заголовком
+rbtn_1 = QRadioButton('wilena')                # радиокнопка-переключатель</pre>
+<p>Виджет — это объект в памяти. Пока он не попал в лейаут, а лейаут — в окно, на экране его нет (в тренажере такой объект подсвечен на «складе»).</p></div>
+     <div class="thSec"><h3>2. Создание направляющих (лейаутов)</h3>
+<pre>layout_line1 = QHBoxLayout()  # горизонтальная — элементы в ряд ↔
+layout_card  = QVBoxLayout()  # вертикальная — элементы в столбец ↕</pre>
+<p>Лейаут невидим: это «направляющая», которая расставляет виджеты и растягивает их при изменении размера окна.</p></div>
+     <div class="thSec"><h3>3. Виджет → в направляющую: addWidget</h3>
+<pre>layout_line2.addWidget(RadioGroupBox)
+layout_line1.addWidget(lb_Question,
+        alignment=(Qt.AlignHCenter | Qt.AlignVCenter))  # выравнивание
+layout_line3.addWidget(btn_OK, stretch=2)               # доля «резинки»</pre>
+<p>alignment — как выровнять виджет внутри ячейки; stretch — с каким весом виджет тянет свободное место.</p></div>
+     <div class="thSec"><h3>4. Направляющая → в направляющую: addLayout</h3>
+<pre>layout_ans1.addLayout(layout_ans2)              # колонка — в ряд группы
+layout_card.addLayout(layout_line1, stretch=2)  # строка — в главный лейаут</pre>
+<p>Так строится <b>дерево вложенности</b>: маленькие лейауты вкладываются в большие.</p></div>
+     <div class="thSec"><h3>5. «Резинки» и промежутки: stretch и spacing</h3>
+<pre>layout_line3.addStretch(1)  # пустая пружина — забирает свободное место
+layout_card.setSpacing(5)   # промежуток между соседними элементами</pre>
+<p><b>stretch</b> — вес распределения свободного места: stretch=2 тянет вдвое сильнее, чем 1. addStretch(1) ставит невидимую пружину-распорку (в тренажере — пунктир с подписью stretch(1)). <b>setSpacing</b> — расстояние между элементами лейаута; рядом существует setContentsMargins(л, в, п, н) — поля вокруг содержимого.</p></div>
+     <div class="thSec"><h3>6. Главная направляющая → в окно / в группу: setLayout</h3>
+<pre>RadioGroupBox.setLayout(layout_ans1)  # группе — свой лейаут
+window.setLayout(layout_card)         # окну — главный лейаут</pre>
+<p>setLayout делается один раз и «включает» разметку: всё вложенное дерево встает на свои места.</p></div>
+     <div class="thSec"><h3>7. Главное правило: два подхода равноценны</h3>
+<p><b>Подход 1 — «сначала каркас»:</b> собрать дерево направляющих и затем разложить по ним виджеты. <b>Подход 2 — «заполняем по ходу»:</b> создавать направляющую и сразу класть в нее виджеты. Для Qt порядок операторов свободен — важно только <b>дерево вложенности</b> (кто в ком лежит) и то, что переменная создана до использования. См. дерево под «складом» после сборки.</p></div>
+   </div>
+   <div id="commentBar"></div>
+ </div>
+ <div id="rightCol">
+   <div id="methodNote">💡 <b>До сборки — важное:</b> есть <b>два равноценных подхода</b>. <b>1)</b> «Сначала каркас»: собрать направляющие (лейауты) в дерево, а потом разложить по ним виджеты. <b>2)</b> «Заполняем по ходу»: создаем направляющую и сразу кладем в нее виджеты. Для Qt порядок операторов не важен — важно лишь итоговое <b>дерево вложенности</b>. Когда сборка начнется, плашка исчезнет.</div>
+   <div id="palette"></div>
+   <div id="treeBox"></div>
+ </div>
+ <div id="codePanel"><h4>Код разметки (Python):</h4><div id="codePre"></div></div>
+</main>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const GC={L_line1:'#2f7fd6',L_line2:'#2f7fd6',L_line3:'#2f7fd6',L_card:'#8a5cf5',L_ans1:'#e08a2e',L_ans2:'#8a4fd3',L_ans3:'#d34f8a',
+W_q:'#555',W_btn:'#555',W_gb:'#555',W_r1:'#555',W_r2:'#555',W_r3:'#555',W_r4:'#555'};
+let mode='preview',variant=1,busy=false,autoOn=false,autoToken=0,stepMode=false,stepIdx=0,linesMap={},schemaOn=false;
+
+function orientOf(k){if(k.startsWith('L_line'))return'H';if(k=='L_card')return'V';
+ return variant==1?(k=='L_ans1'?'H':'V'):(k=='L_ans1'?'V':'H');}
+const arr=k=>orientOf(k)=='H'?'↔':'↕';
+function guide(id,key,inner,flex){return `<div class="guide ${flex||''}" id="${id}" style="--gc:${GC[key]}"><span class="tag">${key.replace('L_','layout_')} ${arr(key)}</span>${inner}</div>`;}
+function zone(id,accept,hint,cls){return `<div class="zone ${cls||''}" id="${id}" data-accept="${accept}">${hint}</div>`;}
+function rb(id,label,hidden){return `<div class="rb ${hidden?'hidden':''}" id="${id}"><span class="cir"></span>${label}</div>`;}
+
+function codeLines(v){const A1=v==1?'QHBoxLayout()':'QVBoxLayout()',A2=v==1?'QVBoxLayout()':'QHBoxLayout()';
+ return [
+ ['create_btn',"btn_OK = QPushButton('Ответить')"],['create_lb',"lb_Question = QLabel('деревня')"],
+ ['create_gb',"RadioGroupBox = QGroupBox(\"Варианты ответов\")"],
+ ['create_r1',"rbtn_1 = QRadioButton('wilena')"],['create_r2',"rbtn_2 = QRadioButton('woinstva')"],
+ ['create_r3',"rbtn_3 = QRadioButton('woiska')"],['create_r4',"rbtn_4 = QRadioButton('wioska')"],
+ ['ans1_create',"layout_ans1 = "+A1],['ans2_create',"layout_ans2 = "+A2],['ans3_create',"layout_ans3 = "+A2],
+ ['ans2_add1',"layout_ans2.addWidget(rbtn_1)"],['ans2_add2',"layout_ans2.addWidget(rbtn_2)"],
+ ['ans3_add1',"layout_ans3.addWidget(rbtn_3)"],['ans3_add2',"layout_ans3.addWidget(rbtn_4)"],
+ ['ans1_add2',"layout_ans1.addLayout(layout_ans2)"],['ans1_add3',"layout_ans1.addLayout(layout_ans3)"],
+ ['gb_set',"RadioGroupBox.setLayout(layout_ans1)"],
+ ['line1_create',"layout_line1 = QHBoxLayout()"],['line2_create',"layout_line2 = QHBoxLayout()"],['line3_create',"layout_line3 = QHBoxLayout()"],
+ ['line1_add',"layout_line1.addWidget(lb_Question, alignment=(Qt.AlignHCenter | Qt.AlignVCenter))"],
+ ['line2_add',"layout_line2.addWidget(RadioGroupBox)"],
+ ['line3_st1',"layout_line3.addStretch(1)"],['line3_btn',"layout_line3.addWidget(btn_OK, stretch=2)"],['line3_st2',"layout_line3.addStretch(1)"],
+ ['card_create',"layout_card = QVBoxLayout()"],['card_add1',"layout_card.addLayout(layout_line1, stretch=2)"],
+ ['card_add2',"layout_card.addLayout(layout_line2, stretch=8)"],['card_st1',"layout_card.addStretch(1)"],
+ ['card_add3',"layout_card.addLayout(layout_line3, stretch=1)"],['card_st2',"layout_card.addStretch(1)"],
+ ['card_space',"layout_card.setSpacing(5)"],['win_set',"window.setLayout(layout_card)"]];}
+function renderCode(v){linesMap={};$('#codePre').innerHTML=codeLines(v).map(([k,t])=>{linesMap[k]=t;
+ return `<div class="cl" data-key="${k}">${t}</div>`;}).join('');}
+function hl(key){const el=$('#codePre').querySelector(`[data-key="${key}"]`);if(!el)return;
+ const p=$('#codePre .cl.hl');if(p){p.classList.remove('hl');p.classList.add('done');}
+ el.classList.add('hl');
+ const cp=$('#codePanel'),er=el.getBoundingClientRect(),pr=cp.getBoundingClientRect();
+ cp.scrollTop+= (er.top-pr.top)+er.height/2-pr.height/2;}
+let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),3000);}
+function cmd(k){hl(k);toast(linesMap[k]);}
+async function hlSeq(keys,gap=650){for(const k of keys){cmd(k);await sleep(gap);}}
+function comment(t){const e=$('#commentBar');e.innerHTML='📢 <b>Комментарий:</b> '+t;e.classList.add('show');
+ e.classList.remove('attn');void e.offsetWidth;e.classList.add('attn');}
+function hideMethod(){$('#methodNote').classList.remove('show');}
+
+function renderPalette(){const L=['L_line1','L_line2','L_line3','L_ans1','L_ans2','L_ans3','L_card'];
+ const W=['W_q','W_gb','W_btn','W_r1','W_r2','W_r3','W_r4'];
+ $('#palette').innerHTML=`<h3>Склад элементов</h3><div class="hint">подсвечен = создан, но не размещен; погас = уже на окне/схеме</div>`+
+  L.map(k=>`<div class="chip" data-key="${k}" style="--gc:${GC[k]}">${k.replace('L_','layout_')} <span class="arr">${arr(k)}</span></div>`).join('')+
+  `<h3>Виджеты</h3>`+W.map(k=>{const lbl={W_q:'lb_Question',W_gb:'RadioGroupBox',W_btn:'btn_OK',W_r1:'rbtn_1',W_r2:'rbtn_2',W_r3:'rbtn_3',W_r4:'rbtn_4'}[k];
+   return `<div class="chip" data-key="${k}" style="--gc:${GC[k]}">${lbl}</div>`;}).join('');}
+function useChip(k){const c=$('#palette').querySelector(`[data-key="${k}"]`);if(c){c.classList.add('used');c.classList.remove('made');}}
+function madeChip(k){const c=$('#palette').querySelector(`[data-key="${k}"]`);if(c)c.classList.add('made');}
+
+const TITLE=`<div class="titlebar"><i class="td r"></i><i class="td y"></i><i class="td g"></i><b>Memo Card</b></div>`;
+const CURSOR=`<svg id="cursorDeco" viewBox="0 0 60 60"><polygon points="10,6 10,46 20,37 26,52 34,48 27,34 40,33" fill="#e07b39" stroke="#b45a1b" stroke-width="2.5"/></svg>`;
+function demoWindowHTML(){return TITLE+`<div class="body" id="winBody">
+ ${guide('g_line1','L_line1',`<div class="w q hidden" id="w_q">деревня</div>`)}
+ ${guide('g_line2','L_line2',`<div class="gbwrap bare" id="w_gb"><div class="gbtitle">Варианты ответов</div><div class="gbpanel" id="gbPanel">
+   ${guide('g_ans1','L_ans1',guide('g_ans2','L_ans2',rb('w_r1','wilena',1)+rb('w_r2','woinstva',1),'col')+guide('g_ans3','L_ans3',rb('w_r3','woiska',1)+rb('w_r4','wioska',1),'col'),'row')}
+  </div></div>`)}
+ ${guide('g_line3','L_line3',`<div class="st hidden" id="st1"></div><div class="w btn hidden" id="w_btn">Ответить</div><div class="st hidden" id="st2"></div>`,'row')}
+ <div class="guide cardov" id="g_card" style="--gc:${GC.L_card}"><span class="tag">layout_card ↕</span></div>
+</div>`+CURSOR;}
+function practiceWindowHTML(){return TITLE+`<div class="body" id="winBody">
+ ${zone('z_line1','L_line1','верхняя строка окна — горизонталь ↔')}
+ ${zone('z_line2','L_line2','средняя строка окна — горизонталь ↔','tall')}
+ ${zone('z_line3','L_line3','нижняя строка окна — горизонталь ↔')}
+</div>`+CURSOR;}
+
+function show(id){const e=$('#'+id);if(e){e.classList.remove('hidden');e.classList.add('pop');}}
+function gOn(id){$('#'+id)?.classList.add('on');}
+function flashEl(id){const e=$('#'+id);if(e){e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}}
+async function fly(chipKey,targetId){const chip=$('#palette').querySelector(`[data-key="${chipKey}"]`);const t=$('#'+targetId);if(!chip||!t)return;
+ const r1=chip.getBoundingClientRect(),r2=t.getBoundingClientRect();
+ const g=chip.cloneNode(true);g.classList.add('ghost');g.style.left=r1.left+'px';g.style.top=r1.top+'px';
+ g.style.transition='left 2.2s ease, top 2.2s ease';document.body.appendChild(g);
+ requestAnimationFrame(()=>{g.style.left=r2.left+r2.width/2-r1.width/2+'px';g.style.top=r2.top+r2.height/2-r1.height/2+'px';});
+ await sleep(2300);g.remove();useChip(chipKey);}
+function showTree(){const v=variant;
+ $('#treeBox').textContent = v==1?
+`ДЕРЕВО ВЛОЖЕННОСТИ (важно оно, а не порядок):
+window
+└─ layout_card (V)
+ ├─ layout_line1 (H) — lb_Question
+ ├─ layout_line2 (H) — RadioGroupBox
+ │ └─ layout_ans1 (H)
+ │  ├─ layout_ans2 (V) — rbtn_1, rbtn_2
+ │  └─ layout_ans3 (V) — rbtn_3, rbtn_4
+ └─ layout_line3 (H) — stretch, btn_OK`:
+`ДЕРЕВО ВЛОЖЕННОСТИ (важно оно, а не порядок):
+window
+└─ layout_card (V)
+ ├─ layout_line1 (H) — lb_Question
+ ├─ layout_line2 (H) — RadioGroupBox
+ │ └─ layout_ans1 (V)
+ │  ├─ layout_ans2 (H) — rbtn_1, rbtn_2
+ │  └─ layout_ans3 (H) — rbtn_3, rbtn_4
+ └─ layout_line3 (H) — stretch, btn_OK`;
+ $('#treeBox').classList.add('show');}
+function settle(){$('#winBody').classList.add('settled');$('#winBody').querySelectorAll('.guide').forEach(g=>g.classList.remove('on'));
+ $('#winBody').querySelectorAll('.zone').forEach(z=>z.remove());
+ $('#w_gb')?.classList.remove('bare');
+ $('#windowMock').classList.add('finished');
+ $('#w_r1')?.classList.add('checked');$('#cursorDeco')?.classList.add('show');showTree();}
+
+/* ---------- ДЕМО ---------- */
+function note(t){const n=$('#stepNote');if(n)n.innerHTML=t;}
+const demoSteps=[
+ async()=>{note('1️⃣ Создаются виджеты — они подсвечиваются на складе');
+   comment('<b>Созданы виджеты интерфейса</b>: кнопка, надпись вопроса, группа и четыре радиокнопки — они подсвечены на складе. На окне их пока нет: виджет появится, только когда попадет в лейаут (группа — на шаге 7).');
+   for(const [k,ck] of [['W_btn','create_btn'],['W_q','create_lb'],['W_gb','create_gb'],['W_r1','create_r1'],['W_r2','create_r2'],['W_r3','create_r3'],['W_r4','create_r4']]){
+     cmd(ck);madeChip(k);
+     await sleep(2000);}},
+ async()=>{hideMethod();note('2️⃣ Левая колонка');
+   comment('Вертикаль layout_ans2 перелетела на окно — в средней области встала левая колонка (сама группа пока невидима: она еще не размещена). В колонку перелетают rbtn_1 и rbtn_2.');
+   cmd('ans2_create');madeChip('L_ans2');await sleep(1400);
+   await fly('L_ans2','g_ans2');gOn('g_ans2');await sleep(800);
+   cmd('ans2_add1');await fly('W_r1','w_r1');show('w_r1');await sleep(1200);
+   cmd('ans2_add2');await fly('W_r2','w_r2');show('w_r2');},
+ async()=>{note('3️⃣ Правая колонка');
+   comment('То же для правой колонки: вертикаль layout_ans3 и радиокнопки rbtn_3, rbtn_4 перелетают и гаснут на складе.');
+   cmd('ans3_create');madeChip('L_ans3');await sleep(1400);
+   await fly('L_ans3','g_ans3');gOn('g_ans3');await sleep(800);
+   cmd('ans3_add1');await fly('W_r3','w_r3');show('w_r3');await sleep(1200);
+   cmd('ans3_add2');await fly('W_r4','w_r4');show('w_r4');},
+ async()=>{note('4️⃣ Главная горизонталь группы');
+   comment('Горизонталь layout_ans1 перелетела и <b>объединила обе колонки</b> в один ряд.');
+   cmd('ans1_create');madeChip('L_ans1');await sleep(1400);
+   await fly('L_ans1','g_ans1');gOn('g_ans1');await sleep(800);
+   cmd('ans1_add2');flashEl('g_ans2');await sleep(2000);cmd('ans1_add3');flashEl('g_ans3');},
+ async()=>{note('5️⃣ Лейаут передан группе');
+   comment('RadioGroupBox.setLayout(layout_ans1): группа получила лейаут с колонками. Но на окне группа <b>все еще невидима</b> — она сама еще не стоит ни в одном лейауте.');
+   cmd('gb_set');flashEl('g_ans1');await sleep(2400);},
+ async()=>{note('6️⃣ Верхняя строка');
+   comment('Горизонталь layout_line1 перелетела наверх; в нее перелетает lb_Question — надпись вопроса по центру.');
+   cmd('line1_create');madeChip('L_line1');await sleep(1400);
+   await fly('L_line1','g_line1');gOn('g_line1');await sleep(800);
+   cmd('line1_add');await fly('W_q','w_q');show('w_q');},
+ async()=>{note('7️⃣ Средняя строка: группа появляется на окне');
+   comment('layout_line2.addWidget(RadioGroupBox) — только теперь группа <b>появляется на окне</b>: возникают рамка и заголовок «Варианты ответов», chip RadioGroupBox гаснет на складе.');
+   cmd('line2_create');madeChip('L_line2');await sleep(1400);
+   await fly('L_line2','g_line2');gOn('g_line2');await sleep(800);
+   cmd('line2_add');await fly('W_gb','w_gb');
+   $('#w_gb').classList.remove('bare');$('#gbPanel').classList.add('pop');flashEl('gbPanel');},
+ async()=>{note('8️⃣ Нижняя строка');
+   comment('Горизонталь layout_line3 перелетела вниз; по бокам stretch, в центр перелетает кнопка btn_OK.');
+   cmd('line3_create');madeChip('L_line3');await sleep(1400);
+   await fly('L_line3','g_line3');gOn('g_line3');await sleep(800);
+   cmd('line3_st1');show('st1');await sleep(1600);
+   cmd('line3_btn');await fly('W_btn','w_btn');show('w_btn');await sleep(1200);
+   cmd('line3_st2');show('st2');},
+ async()=>{note('9️⃣ Главный лейаут окна');
+   comment('Вертикаль layout_card перелетела на окно и собрала три строки сверху вниз (stretch 2/8/1).');
+   cmd('card_create');madeChip('L_card');await sleep(1400);
+   await fly('L_card','g_card');gOn('g_card');await sleep(800);
+   cmd('card_add1');flashEl('g_line1');await sleep(1600);cmd('card_add2');flashEl('g_line2');await sleep(1600);
+   cmd('card_st1');await sleep(1600);cmd('card_add3');flashEl('g_line3');await sleep(1600);cmd('card_st2');await sleep(1600);cmd('card_space');},
+ async()=>{comment('<b>Готово!</b> Все элементы со склада размещены — список погас. Окно размечено как на картинке. Дерево вложенности — под складом.');
+   cmd('win_set');settle();toast('✅ Готово! Окно размечено как на картинке');note('✅ Готово!');},
+];
+async function runStep(){if(busy||stepIdx>=demoSteps.length)return;busy=true;await demoSteps[stepIdx++]();busy=false;updateBar();}
+async function autoLoop(){const my=++autoToken;autoOn=true;
+ while(my===autoToken&&autoOn&&!stepMode&&stepIdx<demoSteps.length){
+   if(busy){await sleep(200);continue;}
+   await runStep();
+   if(my===autoToken&&autoOn&&!stepMode&&stepIdx<demoSteps.length){
+     note('⏸ Пауза — осмыслите часть (можно включить «по шагам»)');
+     for(let i=0;i<60;i++){if(!(my===autoToken&&autoOn&&!stepMode))break;await sleep(100);}
+   }
+ }
+ if(my===autoToken)autoOn=false;}
+
+/* ---------- САМОСТОЯТЕЛЬНАЯ ---------- */
+async function doDrop(z,key){
+ hideMethod();
+ switch(z.id){
+  case 'z_line1':z.outerHTML=guide('g_line1','L_line1',zone('z_q','W_q','место для виджета вопроса (QLabel)'));cmd('line1_create');break;
+  case 'z_q':z.outerHTML=`<div class="w q pop" id="w_q">деревня</div>`;await hlSeq(['create_lb','line1_add'],450);break;
+  case 'z_line2':z.outerHTML=guide('g_line2','L_line2',zone('z_gb','W_gb','место для группы (QGroupBox)','tall'));cmd('line2_create');break;
+  case 'z_gb':z.outerHTML=`<div class="gbwrap pop" id="w_gb"><div class="gbtitle">Варианты ответов</div><div class="gbpanel" id="gbPanel">
+    ${zone('z_ansmain','L_ans1','главный лейаут группы: '+(variant==1?'горизонталь ↔':'вертикаль ↕'),'tall')}</div></div>`;
+    await hlSeq(['create_gb','line2_add'],450);break;
+  case 'z_ansmain':{const v1=variant==1;
+    z.outerHTML=guide('g_ans1','L_ans1',zone('z_ans2','L_ans2',(v1?'колонка 1 — вертикаль ↕':'рядок 1 — горизонталь ↔'),'colz')+
+      zone('z_ans3','L_ans3',(v1?'колонка 2 — вертикаль ↕':'рядок 2 — горизонталь ↔'),'colz'),v1?'row':'col');
+    await hlSeq(['ans1_create','gb_set'],500);toast('📦 Радиокнопки будут объединены в группу!');break;}
+  case 'z_ans2':{const v1=variant==1;
+    z.outerHTML=guide('g_ans2','L_ans2',zone('z_r1','W_r1','rbtn_1')+zone('z_r2','W_r2','rbtn_2'),v1?'col':'row');
+    await hlSeq(['ans2_create','ans1_add2'],450);break;}
+  case 'z_ans3':{const v1=variant==1;
+    z.outerHTML=guide('g_ans3','L_ans3',zone('z_r3','W_r3','rbtn_3')+zone('z_r4','W_r4','rbtn_4'),v1?'col':'row');
+    await hlSeq(['ans3_create','ans1_add3'],450);break;}
+  case 'z_r1':z.outerHTML=rb('w_r1','wilena');await hlSeq(['create_r1','ans2_add1'],400);break;
+  case 'z_r2':z.outerHTML=rb('w_r2','woinstva');await hlSeq(['create_r2','ans2_add2'],400);break;
+  case 'z_r3':z.outerHTML=rb('w_r3','woiska');await hlSeq(['create_r3','ans3_add1'],400);break;
+  case 'z_r4':z.outerHTML=rb('w_r4','wioska');await hlSeq(['create_r4','ans3_add2'],400);break;
+  case 'z_line3':z.outerHTML=guide('g_line3','L_line3',zone('z_btn','W_btn','место для кнопки btn_OK'),'row');cmd('line3_create');break;
+  case 'z_btn':z.outerHTML=`<div class="st pop" id="st1"></div><div class="w btn pop" id="w_btn">Ответить</div><div class="st pop" id="st2"></div>`;
+    await hlSeq(['line3_st1','line3_btn','line3_st2'],500);break;
+  case 'z_card':z.outerHTML=`<div class="guide cardov on" id="g_card" style="--gc:${GC.L_card}"><span class="tag">layout_card ↕</span></div>`;
+    await hlSeq(['card_create','card_add1','card_add2','card_st1','card_add3','card_st2','card_space'],500);
+    cmd('win_set');settle();
+    comment('<b>🎉 Готово!</b> Окно собрано самостоятельно: главный лейаут установлен, все элементы на местах. Дерево вложенности — под складом.');
+    toast('✅ Отлично! Окно размечено самостоятельно!');break;
+ }
+ checkComplete();}
+function checkComplete(){if(mode!=='practice'||$('#z_card')||$('#g_card'))return;
+ const need=['w_q','w_gb','w_btn','w_r1','w_r2','w_r3','w_r4'];
+ if(need.every(id=>$('#'+id))){
+   $('#winBody').insertAdjacentHTML('beforeend', zone('z_card','L_card','','cardz'));
+   comment('Остался один шаг: перетащите <b>layout_card</b> со склада на пунктирную рамку окна — это window.setLayout(layout_card).');
+ }}
+
+/* ---------- DRAG&DROP ---------- */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const chip=e.target.closest('.chip');if(!chip||chip.classList.contains('used')||mode!='practice')return;
+ drag={key:chip.dataset.key,chip};chip.classList.add('dragging');
+ const g=chip.cloneNode(true);g.classList.add('ghost');document.body.appendChild(g);drag.g=g;moveG(e);e.preventDefault();});
+function moveG(e){if(drag){drag.g.style.left=e.clientX-40+'px';drag.g.style.top=e.clientY-14+'px';}
+ const z=zoneAt(e);document.querySelectorAll('.zone.hover,.zone.bad').forEach(el=>el.classList.remove('hover','bad'));
+ if(z&&drag)z.classList.add(z.dataset.accept.split(',').includes(drag.key)?'hover':'bad');}
+function zoneAt(e){return document.elementsFromPoint(e.clientX,e.clientY).find(el=>el.classList&&el.classList.contains('zone'));}
+document.addEventListener('pointermove',moveG);
+document.addEventListener('pointerup',e=>{if(!drag)return;const z=zoneAt(e);
+ if(z&&z.dataset.accept.split(',').includes(drag.key)){useChip(drag.key);doDrop(z,drag.key);}
+ else if(z){toast('❌ Не то место или не тот элемент!');}
+ drag.g.remove();drag.chip.classList.remove('dragging');
+ document.querySelectorAll('.zone.hover,.zone.bad').forEach(el=>el.classList.remove('hover','bad'));drag=null;});
+
+/* ---------- СХЕМА-ЁЛОЧКА ---------- */
+function schemaSVG(){return `<svg viewBox="0 0 640 620">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#0b1e3a"/><stop offset="1" stop-color="#17497a"/></linearGradient></defs>
+<rect width="640" height="620" fill="url(#sky)"/>
+<circle cx="60" cy="80" r="2.5" fill="#fff" opacity=".6"/><circle cx="140" cy="40" r="2" fill="#fff" opacity=".5"/>
+<circle cx="520" cy="70" r="2.5" fill="#fff" opacity=".6"/><circle cx="600" cy="150" r="2" fill="#fff" opacity=".5"/>
+<circle cx="80" cy="300" r="2" fill="#fff" opacity=".4"/><circle cx="580" cy="330" r="2.5" fill="#fff" opacity=".5"/>
+<circle cx="40" cy="480" r="2" fill="#fff" opacity=".4"/><circle cx="610" cy="470" r="2" fill="#fff" opacity=".4"/>
+<ellipse cx="320" cy="592" rx="310" ry="26" fill="#e8f2fb" opacity=".95"/>
+<g id="gTrunk" class="part"><line class="draw" pathLength="1" x1="320" y1="70" x2="320" y2="575" stroke="#8b5a2b" stroke-width="10" stroke-linecap="round"/><text class="fade" x="332" y="572">layout_card ↕ — ствол</text></g>
+<g id="gLine1" class="part"><line class="draw" pathLength="1" x1="200" y1="140" x2="440" y2="140" stroke="#2e8b57" stroke-width="6" stroke-linecap="round"/><text class="fade" x="448" y="144">layout_line1 ↔</text><line x1="250" y1="140" x2="250" y2="158" stroke="#cfe8ff" stroke-width="1.5"/><rect class="fade" x="204" y="158" width="92" height="20" rx="5" fill="#ffd75f"/><text class="fade" x="250" y="172" text-anchor="middle" fill="#333">lb_Question</text></g>
+<g id="gLine2" class="part"><line class="draw" pathLength="1" x1="170" y1="225" x2="470" y2="225" stroke="#2e8b57" stroke-width="6" stroke-linecap="round"/><text class="fade" x="478" y="229">layout_line2 ↔</text></g>
+<g id="gGroup" class="part"><line class="draw" pathLength="1" x1="190" y1="275" x2="450" y2="275" stroke="#1f6e43" stroke-width="8" stroke-linecap="round"/><text class="fade" x="182" y="279" text-anchor="end">RadioGroupBox — веточка-группа</text></g>
+<g id="gAns1" class="part"><line class="draw" pathLength="1" x1="210" y1="325" x2="430" y2="325" stroke="#2e8b57" stroke-width="5" stroke-linecap="round"/><text class="fade" x="202" y="329" text-anchor="end">layout_ans1 ↔</text></g>
+<g id="gAns2" class="part"><line class="draw" pathLength="1" x1="260" y1="325" x2="260" y2="435" stroke="#2e8b57" stroke-width="4" stroke-linecap="round"/><text class="fade" x="252" y="345" text-anchor="end">layout_ans2 ↕</text></g>
+<g id="gAns3" class="part"><line class="draw" pathLength="1" x1="380" y1="325" x2="380" y2="435" stroke="#2e8b57" stroke-width="4" stroke-linecap="round"/><text class="fade" x="388" y="345">layout_ans3 ↕</text></g>
+<g id="gB1" class="part"><g class="ball"><circle cx="260" cy="372" r="10" fill="#e5484d"/><circle cx="257" cy="369" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="246" y="376" text-anchor="end">rbtn_1</text></g>
+<g id="gB2" class="part"><g class="ball"><circle cx="260" cy="420" r="10" fill="#4f8ef7"/><circle cx="257" cy="417" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="246" y="424" text-anchor="end">rbtn_2</text></g>
+<g id="gB3" class="part"><g class="ball"><circle cx="380" cy="372" r="10" fill="#f7c74f"/><circle cx="377" cy="369" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="394" y="376">rbtn_3</text></g>
+<g id="gB4" class="part"><g class="ball"><circle cx="380" cy="420" r="10" fill="#b07fe8"/><circle cx="377" cy="417" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="394" y="424">rbtn_4</text></g>
+<g id="gLine3" class="part"><line class="draw" pathLength="1" x1="200" y1="505" x2="440" y2="505" stroke="#2e8b57" stroke-width="6" stroke-linecap="round"/><text class="fade" x="448" y="509">layout_line3 ↔</text><rect class="fade" x="306" y="513" width="28" height="22" rx="3" fill="#d34f8a"/><line class="fade" x1="320" y1="513" x2="320" y2="535" stroke="#ffd75f" stroke-width="2"/><line class="fade" x1="306" y1="524" x2="334" y2="524" stroke="#ffd75f" stroke-width="2"/><text class="fade" x="340" y="530">btn_OK 🎁</text></g>
+<g id="gStar" class="part"><text class="fade" x="320" y="60" text-anchor="middle" font-size="30">⭐</text><text class="fade" x="352" y="58">window.setLayout(layout_card)</text></g>
+</svg>`;}
+let AC;
+function playMelody(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ const N={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00};
+ const seq=[['E4',1],['E4',1],['E4',2],['E4',1],['E4',1],['E4',2],['E4',1],['G4',1],['C4',1],['D4',1],['E4',4],
+ ['F4',1],['F4',1],['F4',1],['F4',.5],['F4',.5],['F4',1],['E4',1],['E4',1],['E4',.5],['E4',.5],
+ ['G4',1],['G4',1],['F4',1],['D4',1],['C4',4]];
+ let t=AC.currentTime+0.1;const beat=0.3;
+ for(const [n,b] of seq){const o=AC.createOscillator(),g=AC.createGain();
+  o.type='triangle';o.frequency.value=N[n];
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.25,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t+b*beat*0.9);
+  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+b*beat);t+=b*beat;}
+}catch(e){}}
+async function runSchema(){schemaOn=true;
+ comment('Сейчас вырастет <b>ёлочка-схема</b> разметки. Элементы подсвечиваются на складе и гаснут, когда встанут на схему.');
+ await sleep(1500);
+ const S=[
+ ['gTrunk',['card_create'],['L_card'],'<b>Ствол ёлочки</b> — главная вертикальная направляющая окна layout_card.'],
+ ['gLine1',['line1_create','line1_add'],['L_line1','W_q'],'<b>Веточка</b> верхней строки — горизонталь layout_line1 с надписью вопроса.'],
+ ['gLine2',['line2_create'],['L_line2'],'<b>Веточка</b> средней строки — горизонталь layout_line2.'],
+ ['gGroup',['create_gb','line2_add'],['W_gb'],'<b>Веточка-группа</b> RadioGroupBox — на ней вырастут шарики-радиокнопки.'],
+ ['gAns1',['ans1_create','gb_set'],['L_ans1'],'Внутри группы — <b>горизонталь layout_ans1</b>.'],
+ ['gAns2',['ans2_create','ans1_add2'],['L_ans2'],'<b>Вертикальная веточка</b> layout_ans2.'],
+ ['gAns3',['ans3_create','ans1_add3'],['L_ans3'],'<b>Вертикальная веточка</b> layout_ans3.'],
+ ['gB1',['ans2_add1'],['W_r1'],'<b>Шарик</b> — радиокнопка rbtn_1.'],
+ ['gB2',['ans2_add2'],['W_r2'],'<b>Шарик</b> — радиокнопка rbtn_2.'],
+ ['gB3',['ans3_add1'],['W_r3'],'<b>Шарик</b> — радиокнопка rbtn_3.'],
+ ['gB4',['ans3_add2'],['W_r4'],'<b>Шарик</b> — радиокнопка rbtn_4.'],
+ ['gLine3',['line3_create','line3_btn'],['L_line3','W_btn'],'<b>Веточка</b> нижней строки layout_line3, на ней подарок — кнопка btn_OK.'],
+ ['gStar',[],[],'<b>Ёлочка собрана</b>: window.setLayout(layout_card).'],
+];
+ for(let i=0;i<S.length;i++){if(!schemaOn)return;
+   const [id,keys,chips,cm]=S[i];
+   note(`🎄 шаг ${i+1} из ${S.length}`);
+   chips.forEach(madeChip);
+   $('#'+id)?.classList.add('on');comment(cm);
+   keys.forEach((k,j)=>setTimeout(()=>cmd(k),j*900));
+   await sleep(1600);
+   chips.forEach(useChip);
+   await sleep(1600);
+ }
+ if(!schemaOn)return;
+ playMelody();toast('🎄 Схема разметки — как ёлочка.');}
+
+/* ---------- РЕЖИМЫ ---------- */
+function updateBar(){const b=$('#controlBar');
+ if(mode=='preview')b.innerHTML=`<span>Это готовое окно (как на картинке). Выберите режим в меню ↑</span>`;
+ else if(mode=='demo')b.innerHTML=`<span id="stepNote"></span><span style="flex:1"></span>
+   <label title="Включить пошаговый просмотр с кнопкой «Дальше»"><input type="checkbox" id="stepToggle" ${stepMode?'checked':''}> ⏭ по шагам</label>
+   ${stepMode?'<button class="mbtn" id="btnNext">Дальше ▶</button>':''}
+   <button class="mbtn" id="btnRe">⟲ Заново</button> <span>шаг ${stepIdx}/${demoSteps.length}</span>`;
+ else if(mode=='schema')b.innerHTML=`<span id="stepNote"></span><span style="flex:1"></span>
+   <button class="mbtn" id="btnRe">⟲ Заново</button>`;
+ else if(mode=='theory')b.innerHTML=`<span>📖 Теория разметки: виджеты → лейауты → окно. Справа — полный код для справки.</span>`;
+ else b.innerHTML=`<b>Вариант разметки группы:</b>
+   <label><input type="radio" name="var" value="1" ${variant==1?'checked':''}> 1: горизонталь ↔ + 2 вертикали ↕</label>
+   <label><input type="radio" name="var" value="2" ${variant==2?'checked':''}> 2: вертикаль ↕ + 2 горизонтали ↔</label>
+   <span style="flex:1"></span><span id="stepNote">Сначала каркас из направляющих, потом виджеты (или заполняйте по ходу — Qt всё равно!)</span>
+   <button class="mbtn" id="btnRe">⟲ Заново</button>`;
+ $('#btnNext')?.addEventListener('click',runStep);
+ $('#btnRe')?.addEventListener('click',()=>enterMode(mode));
+ $('#stepToggle')?.addEventListener('change',e=>{stepMode=e.target.checked;
+   if(stepMode){autoOn=false;}
+   else if(mode=='demo'&&stepIdx<demoSteps.length){autoLoop();}
+   updateBar();});
+ b.querySelectorAll('input[name=var]').forEach(r=>r.addEventListener('change',()=>{variant=+r.value;enterMode('practice');}));}
+function enterMode(m){mode=m;autoOn=false;autoToken++;busy=false;schemaOn=false;$('#treeBox').classList.remove('show');
+ $('#schemaBox').style.display=(m=='schema')?'block':'none';
+ $('#theoryBox').style.display=(m=='theory')?'block':'none';
+ $('#windowMock').style.display=(m=='schema'||m=='theory')?'none':'block';
+ $('#windowMock').classList.remove('finished');
+ $('#methodNote').classList.toggle('show',m=='preview'||m=='demo'||m=='practice');
+ $('#commentBar').classList.remove('show');$('#commentBar').innerHTML='';
+ if(m=='practice'){renderCode(variant);renderPalette();$('#windowMock').innerHTML=practiceWindowHTML();}
+ else if(m=='schema'){stepIdx=0;renderCode(1);renderPalette();$('#schemaBox').innerHTML=schemaSVG();runSchema();}
+ else if(m=='theory'){renderCode(1);renderPalette();}
+ else{stepIdx=0;renderCode(1);renderPalette();$('#windowMock').innerHTML=demoWindowHTML();
+   if(m=='preview')settle(); else if(!stepMode)autoLoop();}
+ updateBar();}
+$('#mDemo').onclick=()=>enterMode('demo');
+$('#mPractice').onclick=()=>enterMode('practice');
+$('#mSchema').onclick=()=>enterMode('schema');
+$('#mTheory').onclick=()=>enterMode('theory');
+$('#mReset').onclick=()=>enterMode(mode);
+enterMode('preview');
+</script>
+</body>
+</html>
