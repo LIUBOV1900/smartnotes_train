@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тренажер: разметка окна «Испытай удачу» (PyQt5)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f7f9fc;font-family:'Segoe UI',Tahoma,sans-serif;color:#222;padding:10px 14px;user-select:none}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+header h1{font-size:17px}
+.mbtn{border:1px solid #b5b5b5;background:linear-gradient(#fdfdfd,#e2e2e2);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+.mbtn:hover{background:#fff}
+main{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+#stageWrap{display:flex;flex-direction:column;gap:8px;flex:none}
+#methodNote{display:none;background:#eaf3ff;border:2px solid #7fb2e6;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.45;width:420px;max-width:96vw;color:#123a63}
+#methodNote.show{display:block}
+#commentBar{display:none;background:linear-gradient(#fff7d6,#ffe9a8);border:2px solid #e6a817;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;line-height:1.45;width:420px;max-width:96vw;color:#4a3000;box-shadow:0 3px 10px #e6a81733}
+#commentBar.show{display:block}
+#commentBar.attn{animation:attn .8s}
+@keyframes attn{0%{box-shadow:0 0 0 0 #e6a81788}50%{box-shadow:0 0 0 8px #e6a81722}100%{box-shadow:0 3px 10px #e6a81733}}
+#controlBar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eef2f7;border:1px solid #d5dce6;border-radius:8px;padding:6px 10px;font-size:13px;min-height:42px;width:420px;max-width:96vw}
+#controlBar .mbtn{padding:4px 10px}
+#controlBar label{display:flex;gap:4px;align-items:center;cursor:pointer}
+#windowMock{width:420px;max-width:96vw;background:#ececec;border:1px solid #8f8f8f;border-radius:8px;box-shadow:0 8px 22px #0003;position:relative}
+#windowMock.finished{border-color:#57a05a;box-shadow:0 0 0 3px #57a05a33,0 8px 22px #0003}
+.titlebar{display:flex;align-items:center;gap:7px;padding:8px 12px;background:linear-gradient(#f6f6f6,#d9d9d9);border-bottom:1px solid #bbb;font-size:13px}
+.titlebar b{flex:1;text-align:center;font-weight:600;color:#444}
+.td{width:13px;height:13px;border-radius:50%}
+.td.r{background:#e5534b}.td.y{background:#e8b53a}.td.g{background:#57c15a}
+.body{position:relative;display:flex;flex-direction:column;gap:14px;padding:18px 16px;min-height:250px;justify-content:center}
+.w{text-align:center;font-size:15px;padding:2px}
+.w.btn{margin:0 auto;padding:7px 18px;background:#fbfbfb;border:1px solid #999;border-radius:7px;font-size:14px;cursor:pointer}
+.w.btn:active{background:#e8e8e8}
+.guide{position:relative;margin:6px;padding:10px;border:2px dashed transparent;border-radius:8px}
+.guide .tag{display:none;position:absolute;top:-11px;left:10px;font:600 11px/1.5 monospace;color:#fff;padding:0 7px;border-radius:9px;background:var(--gc,#888);z-index:3}
+.guide.on{border-color:var(--gc)}
+.guide.on .tag{display:block}
+.col{display:flex;flex-direction:column;gap:12px}
+.settled .guide{border-color:transparent!important}
+.settled .tag{display:none}
+.zone{border:2px dashed #b5b5b5;border-radius:8px;color:#8a8a8a;font-size:12px;display:flex;align-items:center;justify-content:center;min-height:34px;margin:2px;padding:6px;text-align:center;background:#f4f4f4b0}
+.zone.tall{min-height:210px}
+.zone.hover{border-color:#2f7fd6;color:#2f7fd6;background:#e8f1fc}
+.zone.bad{border-color:#d64c4c;background:#fdeaea}
+.zone.cardz{position:absolute;inset:8px;min-height:0;z-index:5;background:transparent;border:2px dashed #57a05a;margin:0}
+.zone.cardz::after{content:'myWind.setLayout(line)';position:absolute;top:-12px;right:12px;background:#57a05a;color:#fff;font:600 11px monospace;padding:2px 8px;border-radius:9px}
+.zone.cardz.hover{border-color:#2f7fd6;background:#2f7fd611}
+#rightCol{display:flex;flex-direction:column;gap:10px;width:290px;flex:none}
+#palette{background:#fff;border:1px solid #d5dce6;border-radius:10px;padding:10px;box-shadow:0 4px 12px #0001}
+#palette h3{font-size:13px;margin:6px 2px;color:#445}
+#palette .hint{font-size:11px;color:#789;margin:2px 2px 6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--gc,#777);border-radius:8px;background:#fff;padding:4px 8px;font:600 12px monospace;cursor:grab;margin:4px;box-shadow:0 2px 3px #0002;transform:rotate(-1.5deg);touch-action:none}
+.chip:nth-child(even){transform:rotate(1.6deg)}
+.chip.made{box-shadow:0 0 0 3px #ffd75f99;border-color:#c9a227;background:#fffbe6}
+.chip.used{opacity:.22;pointer-events:none;box-shadow:none}
+.chip.dragging{opacity:.45}
+.ghost{position:fixed;z-index:999;pointer-events:none;margin:0;transform:rotate(0);box-shadow:0 6px 14px #0004;opacity:.95}
+#treeBox{display:none;background:#eef7ee;border:1px solid #bcd9bc;border-radius:10px;padding:8px 10px;font:10.5px/1.5 monospace;white-space:pre;overflow-x:auto}
+#treeBox.show{display:block}
+#schemaBox{width:420px;max-width:96vw;border-radius:10px;border:1px solid #0a1526;box-shadow:0 8px 22px #0004;display:none;flex:none}
+#schemaBox svg{display:block;border-radius:10px;width:420px;height:540px}
+#schemaBox .part{opacity:0}
+#schemaBox .part.on{opacity:1}
+#schemaBox .draw{stroke-dasharray:1;stroke-dashoffset:1}
+#schemaBox .part.on .draw{animation:dash 1.2s ease forwards}
+@keyframes dash{to{stroke-dashoffset:0}}
+#schemaBox .ball{transform:scale(0);transform-box:fill-box;transform-origin:center}
+#schemaBox .part.on .ball{animation:pop2 .6s .3s forwards}
+@keyframes pop2{to{transform:scale(1)}}
+#schemaBox text{font:11px monospace;fill:#cfe8ff}
+#schemaBox .fade{opacity:0}
+#schemaBox .part.on .fade{animation:fadein .8s .4s forwards}
+@keyframes fadein{to{opacity:1}}
+#theoryBox{display:none;width:420px;max-width:96vw;max-height:calc(100vh - 110px);overflow:auto;flex:none}
+.thSec{background:#fff;border:1px solid #d5dce6;border-radius:10px;padding:10px 12px;margin-bottom:8px;box-shadow:0 2px 8px #0001}
+.thSec h3{font-size:14px;margin:0 0 6px;color:#123a63}
+.thSec pre{background:#232323;color:#ddd;border-radius:8px;padding:8px 10px;font:12px/1.55 monospace;white-space:pre-wrap;margin:0 0 6px}
+.thSec p{font-size:13px;line-height:1.5;margin:4px 0;color:#333}
+#codePanel{width:420px;flex:none;background:#232323;color:#ddd;border-radius:10px;padding:10px 12px;font:12.5px/1.55 monospace;overflow:auto;max-height:calc(100vh - 60px)}
+#codePanel h4{color:#9cf;font-size:12px;margin:2px 0 6px}
+.cl{white-space:pre-wrap;padding:0 6px;border-radius:4px;border-left:3px solid transparent}
+.cl.hl{background:#ffd75f;color:#222}
+.cl.done{border-left-color:#57c15a;color:#9f9}
+#toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#222;color:#ffe08a;font:600 13px monospace;padding:9px 14px;border-radius:10px;opacity:0;transition:.3s;z-index:1000;pointer-events:none;box-shadow:0 4px 14px #0006;max-width:90vw}
+#toast.show{opacity:1}
+.hidden{opacity:0;pointer-events:none}
+.pop{animation:pop .45s}
+@keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.flash{animation:fl 1.4s}
+@keyframes fl{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 5px #e08a2e88}}
+</style>
+</head>
+<body>
+<header>
+ <h1>🎰 Тренажер «Испытай удачу» (PyQt5)</h1>
+ <button class="mbtn" id="mDemo">▶ Демонстрация</button>
+ <button class="mbtn" id="mPractice">🛠 Самостоятельная</button>
+ <button class="mbtn" id="mSchema">🎄 Схема</button>
+ <button class="mbtn" id="mTheory">📖 Теория</button>
+ <button class="mbtn" id="mReset">⟲ Сброс</button>
+</header>
+<main>
+ <div id="stageWrap">
+   <div id="controlBar"></div>
+   <div id="windowMock"></div>
+   <div id="schemaBox"></div>
+   <div id="theoryBox">
+     <div class="thSec"><h3>1. Создание виджетов — то, что видит пользователь</h3>
+<pre>text  = QLabel('Победитель')          # надпись
+text1 = QLabel('?')                   # надпись
+text2 = QLabel('??')                  # надпись
+button = QPushButton('Испытай удачу!') # кнопка</pre>
+<p>Виджет — объект в памяти. Пока он не попал в лейаут, а лейаут — в окно, на экране его нет (в тренажере такой объект подсвечен на «складе»).</p></div>
+     <div class="thSec"><h3>2. Создание направляющей (лейаута)</h3>
+<pre>line = QVBoxLayout()  # вертикальная — элементы в столбец ↕</pre>
+<p>Лейаут невидим: это «направляющая», расставляющая виджеты и растягивающая их при изменении размера окна. В этой программе лейаут один.</p></div>
+     <div class="thSec"><h3>3. Виджет → в направляющую: addWidget + alignment</h3>
+<pre>line.addWidget(text, alignment=Qt.AlignCenter)
+line.addWidget(button, alignment=Qt.AlignCenter)</pre>
+<p>alignment — выравнивание виджета внутри ячейки лейаута: Qt.AlignCenter — по центру. Без него виджет растянулся бы на всю ширину.</p></div>
+     <div class="thSec"><h3>4. Направляющая → в окно: setLayout</h3>
+<pre>myWind.setLayout(line)</pre>
+<p>Делается один раз и «включает» разметку: всё дерево встает на свои места. Есть также setSpacing (промежутки) и setContentsMargins (поля), addStretch (пружина-распорка) — здесь не используются.</p></div>
+     <div class="thSec"><h3>5. Обработка событий: connect</h3>
+<pre>button.clicked.connect(show_winner)</pre>
+<p>Сигналу «клик по кнопке» привязывается функция show_winner: при клике в text1/text2 появятся случайные числа, при совпадении — «Вы победили», иначе — «Вы проиграли». Разметки это не касается, но без этого окно «мертвое».</p></div>
+     <div class="thSec"><h3>6. Главное правило</h3>
+<p>Порядок операторов свободен: «сначала каркас, потом виджеты» и «заполняем по ходу» — <b>равноценно</b>. Важно только <b>дерево вложенности</b> (кто в ком лежит) и то, что переменная создана до использования. См. дерево под «складом» после сборки.</p></div>
+   </div>
+   <div id="commentBar"></div>
+ </div>
+ <div id="rightCol">
+   <div id="methodNote">💡 <b>До сборки — важное:</b> есть <b>два равноценных подхода</b>. <b>1)</b> «Сначала каркас»: собрать направляющие в дерево, потом разложить виджеты. <b>2)</b> «Заполняем по ходу»: создаем направляющую и сразу кладем в нее виджеты. Для Qt порядок операторов не важен — важно лишь итоговое <b>дерево вложенности</b>. Когда сборка начнется, плашка исчезнет.</div>
+   <div id="palette"></div>
+   <div id="treeBox"></div>
+ </div>
+ <div id="codePanel"><h4>Код разметки (Python):</h4><div id="codePre"></div></div>
+</main>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const GC={L_line:'#2f7fd6',W_text:'#555',W_text1:'#555',W_text2:'#555',W_button:'#555',W_set:'#57a05a'};
+let mode='preview',busy=false,autoOn=false,autoToken=0,stepMode=false,stepIdx=0,linesMap={},schemaOn=false;
+
+const codeArr=[
+ ['create_text',"text = QLabel('Победитель')"],
+ ['create_text1',"text1 = QLabel('?')"],
+ ['create_text2',"text2 = QLabel('??')"],
+ ['create_button',"button = QPushButton('Испытай удачу!')"],
+ ['line_create',"line = QVBoxLayout()"],
+ ['add_text',"line.addWidget(text, alignment=Qt.AlignCenter)"],
+ ['add_text1',"line.addWidget(text1, alignment=Qt.AlignCenter)"],
+ ['add_text2',"line.addWidget(text2, alignment=Qt.AlignCenter)"],
+ ['add_button',"line.addWidget(button, alignment=Qt.AlignCenter)"],
+ ['connect',"button.clicked.connect(show_winner)"],
+ ['set_layout',"myWind.setLayout(line)"]];
+function renderCode(){linesMap={};$('#codePre').innerHTML=codeArr.map(([k,t])=>{linesMap[k]=t;
+ return `<div class="cl" data-key="${k}">${t}</div>`;}).join('');}
+function hl(key){const el=$('#codePre').querySelector(`[data-key="${key}"]`);if(!el)return;
+ const p=$('#codePre .cl.hl');if(p){p.classList.remove('hl');p.classList.add('done');}
+ el.classList.add('hl');
+ const cp=$('#codePanel'),er=el.getBoundingClientRect(),pr=cp.getBoundingClientRect();
+ cp.scrollTop+=(er.top-pr.top)+er.height/2-pr.height/2;}
+let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),3000);}
+function cmd(k){hl(k);toast(linesMap[k]);}
+function comment(t){const e=$('#commentBar');e.innerHTML='📢 <b>Комментарий:</b> '+t;e.classList.add('show');
+ e.classList.remove('attn');void e.offsetWidth;e.classList.add('attn');}
+function hideMethod(){$('#methodNote').classList.remove('show');}
+
+function renderPalette(){
+ $('#palette').innerHTML=`<h3>Склад элементов</h3><div class="hint">подсвечен = создан, но не размещен; погас = уже на окне/схеме</div>`+
+  `<div class="chip" data-key="L_line" style="--gc:${GC.L_line}">line <span style="font-size:14px">↕</span></div>`+
+  `<h3>Виджеты</h3>`+
+  [['W_text','text'],['W_text1','text1'],['W_text2','text2'],['W_button','button']]
+   .map(([k,l])=>`<div class="chip" data-key="${k}" style="--gc:${GC[k]}">${l}</div>`).join('')+
+  `<h3>Операторы</h3><div class="chip" data-key="W_set" style="--gc:${GC.W_set}">myWind.setLayout(line)</div>`;}
+function useChip(k){const c=$('#palette').querySelector(`[data-key="${k}"]`);if(c){c.classList.add('used');c.classList.remove('made');}}
+function madeChip(k){const c=$('#palette').querySelector(`[data-key="${k}"]`);if(c)c.classList.add('made');}
+
+const TITLE=`<div class="titlebar"><i class="td r"></i><i class="td y"></i><i class="td g"></i><b>Испытай удачу</b></div>`;
+function demoWindowHTML(){return TITLE+`<div class="body" id="winBody">
+ <div class="guide col" id="g_line" style="--gc:${GC.L_line}"><span class="tag">line ↕</span>
+   <div class="w hidden" id="w_text">Победитель</div>
+   <div class="w hidden" id="w_text1">?</div>
+   <div class="w hidden" id="w_text2">??</div>
+   <button class="w btn hidden" id="w_button">Испытай удачу!</button>
+ </div></div>`;}
+function practiceWindowHTML(){return TITLE+`<div class="body" id="winBody">
+ <div class="zone tall" id="z_line" data-accept="L_line">вертикальная направляющая line ↕</div></div>`;}
+
+function show(id){const e=$('#'+id);if(e){e.classList.remove('hidden');e.classList.add('pop');}}
+function gOn(id){$('#'+id)?.classList.add('on');}
+function flashEl(id){const e=$('#'+id);if(e){e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}}
+async function fly(chipKey,targetId){const chip=$('#palette').querySelector(`[data-key="${chipKey}"]`);const t=$('#'+targetId);if(!chip||!t)return;
+ const r1=chip.getBoundingClientRect(),r2=t.getBoundingClientRect();
+ const g=chip.cloneNode(true);g.classList.add('ghost');g.style.left=r1.left+'px';g.style.top=r1.top+'px';
+ g.style.transition='left 2.2s ease, top 2.2s ease';document.body.appendChild(g);
+ requestAnimationFrame(()=>{g.style.left=r2.left+r2.width/2-r1.width/2+'px';g.style.top=r2.top+r2.height/2-r1.height/2+'px';});
+ await sleep(2300);g.remove();useChip(chipKey);}
+function showTree(){
+ $('#treeBox').textContent=
+`ДЕРЕВО ВЛОЖЕННОСТИ (важно оно, а не порядок):
+myWind
+└─ line (V)
+   ├─ text — QLabel('Победитель')
+   ├─ text1 — QLabel('?')
+   ├─ text2 — QLabel('??')
+   └─ button — QPushButton`;
+ $('#treeBox').classList.add('show');}
+function settle(){$('#winBody').classList.add('settled');$('#winBody').querySelectorAll('.guide').forEach(g=>g.classList.remove('on'));
+ $('#winBody').querySelectorAll('.zone').forEach(z=>z.remove());
+ $('#windowMock').classList.add('finished');showTree();}
+/* живая кнопка в собранном окне — как в программе */
+document.addEventListener('click',e=>{
+ if(e.target.id=='w_button'&&$('#winBody')?.classList.contains('settled')){
+   const n=1+Math.floor(Math.random()*3),n2=1+Math.floor(Math.random()*3);
+   $('#w_text1').textContent=n;$('#w_text2').textContent=n2;
+   if(n===n2)$('#w_text').textContent='Вы победили';
+   else $('#w_text').textContent='Вы проиграли';
+ }});
+
+/* ---------- ДЕМО ---------- */
+function note(t){const n=$('#stepNote');if(n)n.innerHTML=t;}
+const demoSteps=[
+ async()=>{note('1️⃣ Создаются виджеты — подсвечиваются на складе');
+   comment('<b>Созданы виджеты</b>: три надписи QLabel и кнопка QPushButton — они подсвечены на складе. На окне их пока нет: виджет появится, только когда попадет в лейаут.');
+   for(const [k,ck] of [['W_text','create_text'],['W_text1','create_text1'],['W_text2','create_text2'],['W_button','create_button']]){
+     cmd(ck);madeChip(k);await sleep(2000);}},
+ async()=>{hideMethod();note('2️⃣ Вертикальная направляющая');
+   comment('Создана вертикаль <b>line</b> и перелетела на окно — столбец по центру окна.');
+   cmd('line_create');madeChip('L_line');await sleep(1400);
+   await fly('L_line','g_line');gOn('g_line');},
+ async()=>{note('3️⃣ Надпись «Победитель»');
+   comment('text перелетает в line с выравниванием Qt.AlignCenter — по центру.');
+   cmd('add_text');await fly('W_text','w_text');show('w_text');},
+ async()=>{note('4️⃣ Надпись «?»');
+   comment('text1 встает под text, тоже по центру.');
+   cmd('add_text1');await fly('W_text1','w_text1');show('w_text1');},
+ async()=>{note('5️⃣ Надпись «??»');
+   comment('text2 — третья в столбце.');
+   cmd('add_text2');await fly('W_text2','w_text2');show('w_text2');},
+ async()=>{note('6️⃣ Кнопка');
+   comment('button замыкает столбец; все элементы выровнены по центру.');
+   cmd('add_button');await fly('W_button','w_button');show('w_button');},
+ async()=>{note('7️⃣ Обработка событий');
+   comment('button.clicked.connect(show_winner): по клику появятся два случайных числа, при совпадении — «Вы победили», иначе — «Вы проиграли». (В собранном окне кнопка рабочая — проверьте!)');
+   cmd('connect');flashEl('w_button');await sleep(2200);},
+ async()=>{note('8️⃣ Направляющая → в окно');
+   comment('myWind.setLayout(line) — разметка «включена», окно готово.');
+   cmd('set_layout');await fly('W_set','winBody');settle();
+   comment('<b>Готово!</b> Все элементы со склада размещены — список погас. Дерево вложенности — под складом. Кнопка работает!');
+   toast('✅ Готово! Окно размечено');note('✅ Готово!');},
+];
+async function runStep(){if(busy||stepIdx>=demoSteps.length)return;busy=true;await demoSteps[stepIdx++]();busy=false;updateBar();}
+async function autoLoop(){const my=++autoToken;autoOn=true;
+ while(my===autoToken&&autoOn&&!stepMode&&stepIdx<demoSteps.length){
+   if(busy){await sleep(200);continue;}
+   await runStep();
+   if(my===autoToken&&autoOn&&!stepMode&&stepIdx<demoSteps.length){
+     note('⏸ Пауза — осмыслите часть (можно включить «по шагам»)');
+     for(let i=0;i<60;i++){if(!(my===autoToken&&autoOn&&!stepMode))break;await sleep(100);}
+   }
+ }
+ if(my===autoToken)autoOn=false;}
+
+/* ---------- САМОСТОЯТЕЛЬНАЯ ---------- */
+function zone(id,accept,hint,cls){return `<div class="zone ${cls||''}" id="${id}" data-accept="${accept}">${hint}</div>`;}
+async function doDrop(z,key){
+ hideMethod();
+ switch(z.id){
+  case 'z_line':z.outerHTML=`<div class="guide col on" id="g_line" style="--gc:${GC.L_line}"><span class="tag">line ↕</span>
+    ${zone('z_text','W_text','место для text — «Победитель»')}
+    ${zone('z_text1','W_text1','место для text1 — «?»')}
+    ${zone('z_text2','W_text2','место для text2 — «??»')}
+    ${zone('z_button','W_button','место для button — «Испытай удачу!»')}</div>`;
+   cmd('line_create');break;
+  case 'z_text':z.outerHTML=`<div class="w pop" id="w_text">Победитель</div>`;cmd('add_text');break;
+  case 'z_text1':z.outerHTML=`<div class="w pop" id="w_text1">?</div>`;cmd('add_text1');break;
+  case 'z_text2':z.outerHTML=`<div class="w pop" id="w_text2">??</div>`;cmd('add_text2');break;
+  case 'z_button':z.outerHTML=`<button class="w btn pop" id="w_button">Испытай удачу!</button>`;cmd('add_button');break;
+  case 'z_set':z.outerHTML='';cmd('connect');cmd('set_layout');settle();
+   comment('<b>🎉 Готово!</b> Окно собрано самостоятельно: line установлен в myWind, все виджеты по центру. Кнопка работает — испытайте удачу! Дерево вложенности — под складом.');
+   toast('✅ Отлично! Окно размечено самостоятельно!');break;
+ }
+ checkComplete();}
+function checkComplete(){if(mode!=='practice'||$('#z_set')||$('#winBody').classList.contains('settled'))return;
+ const need=['w_text','w_text1','w_text2','w_button'];
+ if(need.every(id=>$('#'+id))){
+   $('#winBody').insertAdjacentHTML('beforeend',zone('z_set','W_set','','cardz'));
+   comment('Остался один шаг: перетащите chip <b>myWind.setLayout(line)</b> на пунктирную рамку окна.');
+ }}
+
+/* ---------- DRAG&DROP ---------- */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const chip=e.target.closest('.chip');if(!chip||chip.classList.contains('used')||mode!='practice')return;
+ drag={key:chip.dataset.key,chip};chip.classList.add('dragging');
+ const g=chip.cloneNode(true);g.classList.add('ghost');document.body.appendChild(g);drag.g=g;moveG(e);e.preventDefault();});
+function moveG(e){if(drag){drag.g.style.left=e.clientX-40+'px';drag.g.style.top=e.clientY-14+'px';}
+ const z=zoneAt(e);document.querySelectorAll('.zone.hover,.zone.bad').forEach(el=>el.classList.remove('hover','bad'));
+ if(z&&drag)z.classList.add(z.dataset.accept.split(',').includes(drag.key)?'hover':'bad');}
+function zoneAt(e){return document.elementsFromPoint(e.clientX,e.clientY).find(el=>el.classList&&el.classList.contains('zone'));}
+document.addEventListener('pointermove',moveG);
+document.addEventListener('pointerup',e=>{if(!drag)return;const z=zoneAt(e);
+ if(z&&z.dataset.accept.split(',').includes(drag.key)){useChip(drag.key);doDrop(z,drag.key);}
+ else if(z){toast('❌ Не то место или не тот элемент!');}
+ drag.g.remove();drag.chip.classList.remove('dragging');
+ document.querySelectorAll('.zone.hover,.zone.bad').forEach(el=>el.classList.remove('hover','bad'));drag=null;});
+
+/* ---------- СХЕМА-ЁЛОЧКА ---------- */
+function schemaSVG(){return `<svg viewBox="0 0 420 540">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#0b1e3a"/><stop offset="1" stop-color="#17497a"/></linearGradient></defs>
+<rect width="420" height="540" fill="url(#sky)"/>
+<circle cx="40" cy="70" r="2.5" fill="#fff" opacity=".6"/><circle cx="120" cy="36" r="2" fill="#fff" opacity=".5"/>
+<circle cx="360" cy="60" r="2.5" fill="#fff" opacity=".6"/><circle cx="390" cy="140" r="2" fill="#fff" opacity=".5"/>
+<circle cx="50" cy="280" r="2" fill="#fff" opacity=".4"/><circle cx="380" cy="300" r="2.5" fill="#fff" opacity=".5"/>
+<circle cx="30" cy="430" r="2" fill="#fff" opacity=".4"/><circle cx="395" cy="420" r="2" fill="#fff" opacity=".4"/>
+<ellipse cx="210" cy="515" rx="200" ry="22" fill="#e8f2fb" opacity=".95"/>
+<g id="gTrunk" class="part"><line class="draw" pathLength="1" x1="210" y1="60" x2="210" y2="500" stroke="#8b5a2b" stroke-width="10" stroke-linecap="round"/><text class="fade" x="222" y="498">line ↕ — ствол</text></g>
+<g id="gW1" class="part"><g class="ball"><circle cx="210" cy="150" r="10" fill="#f7c74f"/><circle cx="207" cy="147" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="228" y="154">text — «Победитель»</text></g>
+<g id="gW2" class="part"><g class="ball"><circle cx="210" cy="230" r="10" fill="#e5484d"/><circle cx="207" cy="227" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="228" y="234">text1 — «?»</text></g>
+<g id="gW3" class="part"><g class="ball"><circle cx="210" cy="310" r="10" fill="#4f8ef7"/><circle cx="207" cy="307" r="3" fill="#fff" opacity=".7"/></g><text class="fade" x="228" y="314">text2 — «??»</text></g>
+<g id="gW4" class="part"><rect class="ball" x="196" y="378" width="28" height="22" rx="3" fill="#d34f8a"/><line class="fade" x1="210" y1="378" x2="210" y2="400" stroke="#ffd75f" stroke-width="2"/><line class="fade" x1="196" y1="389" x2="224" y2="389" stroke="#ffd75f" stroke-width="2"/><text class="fade" x="232" y="394">button — «Испытай удачу!»</text></g>
+<g id="gStar" class="part"><text class="fade" x="210" y="48" text-anchor="middle" font-size="28">⭐</text><text class="fade" x="232" y="52">myWind.setLayout(line)</text></g>
+</svg>`;}
+let AC;
+function playMelody(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ const N={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00};
+ const seq=[['E4',1],['E4',1],['E4',2],['E4',1],['E4',1],['E4',2],['E4',1],['G4',1],['C4',1],['D4',1],['E4',4],
+ ['F4',1],['F4',1],['F4',1],['F4',.5],['F4',.5],['F4',1],['E4',1],['E4',1],['E4',.5],['E4',.5],
+ ['G4',1],['G4',1],['F4',1],['D4',1],['C4',4]];
+ let t=AC.currentTime+0.1;const beat=0.3;
+ for(const [n,b] of seq){const o=AC.createOscillator(),g=AC.createGain();
+  o.type='triangle';o.frequency.value=N[n];
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.25,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t+b*beat*0.9);
+  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+b*beat);t+=b*beat;}
+}catch(e){}}
+async function runSchema(){schemaOn=true;
+ comment('Сейчас вырастет <b>ёлочка-схема</b> разметки. Элементы подсвечиваются на складе и гаснут, когда встанут на схему.');
+ await sleep(1500);
+ const S=[
+ ['gTrunk',['line_create'],['L_line'],'<b>Ствол ёлочки</b> — вертикальная направляющая line.'],
+ ['gW1',['add_text'],['W_text'],'<b>Шарик</b> — надпись text «Победитель».'],
+ ['gW2',['add_text1'],['W_text1'],'<b>Шарик</b> — надпись text1 «?».'],
+ ['gW3',['add_text2'],['W_text2'],'<b>Шарик</b> — надпись text2 «??».'],
+ ['gW4',['add_button'],['W_button'],'<b>Подарок</b> — кнопка button «Испытай удачу!».'],
+ ['gStar',['set_layout'],['W_set'],'<b>Ёлочка собрана</b>: myWind.setLayout(line).'],
+];
+ for(let i=0;i<S.length;i++){if(!schemaOn)return;
+   const [id,keys,chips,cm]=S[i];
+   note(`🎄 шаг ${i+1} из ${S.length}`);
+   chips.forEach(madeChip);
+   $('#'+id)?.classList.add('on');comment(cm);
+   keys.forEach((k,j)=>setTimeout(()=>cmd(k),j*900));
+   await sleep(1600);
+   chips.forEach(useChip);
+   await sleep(1600);
+ }
+ if(!schemaOn)return;
+ playMelody();toast('🎄 Схема разметки — как ёлочка.');}
+
+/* ---------- РЕЖИМЫ ---------- */
+function updateBar(){const b=$('#controlBar');
+ if(mode=='preview')b.innerHTML=`<span>Это готовое окно «Испытай удачу» (кнопка рабочая!). Выберите режим в меню ↑</span>`;
+ else if(mode=='demo')b.innerHTML=`<span id="stepNote"></span><span style="flex:1"></span>
+   <label title="Включить пошаговый просмотр с кнопкой «Дальше»"><input type="checkbox" id="stepToggle" ${stepMode?'checked':''}> ⏭ по шагам</label>
+   ${stepMode?'<button class="mbtn" id="btnNext">Дальше ▶</button>':''}
+   <button class="mbtn" id="btnRe">⟲ Заново</button> <span>шаг ${stepIdx}/${demoSteps.length}</span>`;
+ else if(mode=='schema')b.innerHTML=`<span id="stepNote"></span><span style="flex:1"></span>
+   <button class="mbtn" id="btnRe">⟲ Заново</button>`;
+ else if(mode=='theory')b.innerHTML=`<span>📖 Теория разметки: виджеты → line → окно. Справа — полный код для справки.</span>`;
+ else b.innerHTML=`<span id="stepNote">Собери окно: направляющая line, затем виджеты, в конце myWind.setLayout(line).</span><span style="flex:1"></span>
+   <button class="mbtn" id="btnRe">⟲ Заново</button>`;
+ $('#btnNext')?.addEventListener('click',runStep);
+ $('#btnRe')?.addEventListener('click',()=>enterMode(mode));
+ $('#stepToggle')?.addEventListener('change',e=>{stepMode=e.target.checked;
+   if(stepMode){autoOn=false;}
+   else if(mode=='demo'&&stepIdx<demoSteps.length){autoLoop();}
+   updateBar();});}
+function enterMode(m){mode=m;autoOn=false;autoToken++;busy=false;schemaOn=false;$('#treeBox').classList.remove('show');
+ $('#schemaBox').style.display=(m=='schema')?'block':'none';
+ $('#theoryBox').style.display=(m=='theory')?'block':'none';
+ $('#windowMock').style.display=(m=='schema'||m=='theory')?'none':'block';
+ $('#windowMock').classList.remove('finished');
+ $('#methodNote').classList.toggle('show',m=='preview'||m=='demo'||m=='practice');
+ $('#commentBar').classList.remove('show');$('#commentBar').innerHTML='';
+ if(m=='practice'){renderCode();renderPalette();$('#windowMock').innerHTML=practiceWindowHTML();}
+ else if(m=='schema'){stepIdx=0;renderCode();renderPalette();$('#schemaBox').innerHTML=schemaSVG();runSchema();}
+ else if(m=='theory'){renderCode();renderPalette();}
+ else{stepIdx=0;renderCode();renderPalette();$('#windowMock').innerHTML=demoWindowHTML();
+   if(m=='preview')settle(); else if(!stepMode)autoLoop();}
+ updateBar();}
+$('#mDemo').onclick=()=>enterMode('demo');
+$('#mPractice').onclick=()=>enterMode('practice');
+$('#mSchema').onclick=()=>enterMode('schema');
+$('#mTheory').onclick=()=>enterMode('theory');
+$('#mReset').onclick=()=>enterMode(mode);
+enterMode('preview');
+</script>
+</body>
+</html>
