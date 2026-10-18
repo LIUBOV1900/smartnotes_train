@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тренажёр: Умные заметки + словарь notes</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    margin: 0;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #313244;
+    padding: 12px 20px;
+    border-bottom: 2px solid #89b4fa;
+  }
+  header h1 { margin: 0; font-size: 20px; color: #89b4fa; }
+  header p { margin: 4px 0 0; font-size: 13px; color: #a6adc8; }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .panel {
+    background: #181825;
+    border: 1px solid #45475a;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel h2 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #f9e2af;
+    border-bottom: 1px solid #45475a;
+    padding-bottom: 6px;
+  }
+
+  /* === Левая колонка: интерфейс === */
+  .notes-list {
+    flex: 1;
+    overflow-y: auto;
+    background: #11111b;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 6px;
+    min-height: 120px;
+  }
+  .note-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    transition: background .15s;
+  }
+  .note-item:hover { background: #313244; }
+  .note-item.selected { background: #89b4fa; color: #1e1e2e; font-weight: bold; }
+
+  .btn-row { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+  button {
+    background: #89b4fa;
+    color: #1e1e2e;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: transform .1s, background .2s;
+  }
+  button:hover { background: #b4befe; transform: translateY(-1px); }
+  button.danger { background: #f38ba8; }
+  button.danger:hover { background: #eba0ac; }
+  button.success { background: #a6e3a1; }
+  button.success:hover { background: #94e2d5; }
+
+  textarea {
+    flex: 1;
+    background: #11111b;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 8px;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+
+  /* === Правая колонка: отладка === */
+  .debug-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .json-view {
+    flex: 1;
+    background: #11111b;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-y: auto;
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  .log-view {
+    height: 140px;
+    background: #11111b;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 8px;
+    overflow-y: auto;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+  }
+  .log-entry { margin-bottom: 3px; }
+  .log-entry .time { color: #6c7086; }
+  .log-entry .fn { color: #f9e2af; font-weight: bold; }
+  .log-entry .msg { color: #a6e3a1; }
+
+  /* Подсветка изменений в JSON */
+  .key-added    { background: #a6e3a1; color: #1e1e2e; padding: 1px 4px; border-radius: 3px; animation: flash 1.5s; }
+  .key-removed  { background: #f38ba8; color: #1e1e2e; padding: 1px 4px; border-radius: 3px; text-decoration: line-through; animation: flash 1.5s; }
+  .val-changed  { background: #f9e2af; color: #1e1e2e; padding: 1px 4px; border-radius: 3px; animation: flash 1.5s; }
+
+  @keyframes flash {
+    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.8); }
+    50%  { box-shadow: 0 0 12px 2px rgba(255,255,255,0.6); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+
+  .legend {
+    font-size: 12px;
+    color: #a6adc8;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗒️ Тренажёр «Умные заметки»</h1>
+  <p>Слева — интерфейс приложения. Справа — словарь <code>notes</code> в реальном времени. Изменения подсвечиваются.</p>
+</header>
+
+<main>
+  <!-- ============ ИНТЕРФЕЙС ============ -->
+  <section class="panel">
+    <h2>📝 Интерфейс приложения</h2>
+
+    <label style="font-size:13px;color:#a6adc8;">Список заметок:</label>
+    <div class="notes-list" id="notesList">
+      <div style="color:#6c7086;text-align:center;padding:20px;">Пока пусто...</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="success" onclick="addNote()">➕ Создать заметку</button>
+      <button class="danger"  onclick="delNote()">🗑️ Удалить заметку</button>
+      <button onclick="saveNote()">💾 Сохранить заметку</button>
+    </div>
+
+    <label style="font-size:13px;color:#a6adc8;">Текст заметки:</label>
+    <textarea id="noteText" placeholder="Выберите заметку слева, чтобы редактировать..."></textarea>
+  </section>
+
+  <!-- ============ ОТЛАДКА ============ -->
+  <section class="panel">
+    <h2>🔍 Словарь <code>notes</code> (в реальном времени)</h2>
+
+    <div class="legend">
+      <span><span class="dot" style="background:#a6e3a1"></span> новый ключ</span>
+      <span><span class="dot" style="background:#f9e2af"></span> изменённое значение</span>
+      <span><span class="dot" style="background:#f38ba8"></span> удалённый ключ</span>
+    </div>
+
+    <div class="debug-area">
+      <div class="json-view" id="jsonView">{ }</div>
+
+      <h2 style="margin-top:8px;">📜 Лог операций</h2>
+      <div class="log-view" id="logView"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =========================================================
+   СЛОВАРЬ notes — тот самый, что в PyQt-приложении
+   ========================================================= */
+let notes = {};
+
+// Загрузка из localStorage (аналог notes_data.json)
+try {
+  const saved = localStorage.getItem('notes_data.json');
+  if (saved) notes = JSON.parse(saved);
+} catch(e) { notes = {}; }
+
+let selectedNote = null;          // текущая выбранная заметка
+let previousNotesSnapshot = null; // снимок словаря ДО операции (для подсветки)
+
+/* =========================================================
+   ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+   ========================================================= */
+function log(fnName, message) {
+  const logView = document.getElementById('logView');
+  const time = new Date().toLocaleTimeString();
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="time">[${time}]</span> <span class="fn">${fnName}()</span> → <span class="msg">${message}</span>`;
+  logView.appendChild(entry);
+  logView.scrollTop = logView.scrollHeight;
+}
+
+// Сохранение в localStorage (имитация записи в notes_data.json)
+function persist() {
+  localStorage.setItem('notes_data.json', JSON.stringify(notes));
+}
+
+// Отрисовка списка заметок слева
+function renderNotesList() {
+  const list = document.getElementById('notesList');
+  const keys = Object.keys(notes);
+  if (keys.length === 0) {
+    list.innerHTML = '<div style="color:#6c7086;text-align:center;padding:20px;">Пока пусто...</div>';
+    return;
+  }
+  list.innerHTML = '';
+  keys.forEach(key => {
+    const div = document.createElement('div');
+    div.className = 'note-item' + (key === selectedNote ? ' selected' : '');
+    div.textContent = key;
+    div.onclick = () => selectNote(key);
+    list.appendChild(div);
+  });
+}
+
+// Выбор заметки
+function selectNote(key) {
+  selectedNote = key;
+  document.getElementById('noteText').value = notes[key].текст;
+  renderNotesList();
+  log('show_note', `выбрана заметка "${key}"`);
+}
+
+/* =========================================================
+   ПОДСВЕТКА ИЗМЕНЕНИЙ В СЛОВАРЕ
+   Сравнивает предыдущий снимок с текущим notes
+   ========================================================= */
+function renderJsonWithHighlight() {
+  const view = document.getElementById('jsonView');
+  const prev = previousNotesSnapshot || {};
+  const curr = notes;
+
+  // Собираем все ключи (старые + новые)
+  const allKeys = Array.from(new Set([...Object.keys(prev), ...Object.keys(curr)])).sort();
+
+  let html = '{\n';
+  allKeys.forEach((key, i) => {
+    const inPrev = key in prev;
+    const inCurr = key in curr;
+    const comma = (i < allKeys.length - 1) ? ',' : '';
+
+    let keyHtml = escapeHtml(JSON.stringify(key));
+    let valueHtml;
+
+    if (!inPrev && inCurr) {
+      // НОВЫЙ ключ
+      keyHtml = `<span class="key-added">${keyHtml}</span>`;
+      valueHtml = escapeHtml(JSON.stringify(curr[key], null, 2));
+    }
+    else if (inPrev && !inCurr) {
+      // УДАЛЁННЫЙ ключ
+      keyHtml = `<span class="key-removed">${keyHtml}</span>`;
+      valueHtml = `<span class="key-removed">${escapeHtml(JSON.stringify(prev[key], null, 2))}</span>`;
+    }
+    else {
+      // Оба существуют — сравниваем значения
+      const same = JSON.stringify(prev[key]) === JSON.stringify(curr[key]);
+      valueHtml = escapeHtml(JSON.stringify(curr[key], null, 2));
+      if (!same) {
+        valueHtml = `<span class="val-changed">${valueHtml}</span>`;
+      }
+    }
+
+    html += `  ${keyHtml}: ${valueHtml}${comma}\n`;
+  });
+  html += '}';
+
+  view.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* =========================================================
+   ОСНОВНЫЕ ФУНКЦИИ (аналоги PyQt)
+   ========================================================= */
+function addNote() {
+  const name = prompt('Введите имя заметки:');
+  if (!name || !name.trim()) return;
+  if (notes[name]) { alert('Заметка с таким именем уже существует!'); return; }
+
+  previousNotesSnapshot = JSON.parse(JSON.stringify(notes)); // снимок ДО
+  notes[name] = { "текст": "", "теги": [] };
+  renderNotesList();
+  renderJsonWithHighlight();
+  persist();
+  log('add_note', `создана заметка "${name}". notes[${JSON.stringify(name)}] = {текст:"", теги:[]}`);
+}
+
+function delNote() {
+  if (!selectedNote) { alert('Заметка для удаления не выбрана!'); return; }
+  if (!confirm(`Удалить заметку "${selectedNote}"?`)) return;
+
+  previousNotesSnapshot = JSON.parse(JSON.stringify(notes));
+  const key = selectedNote;
+  delete notes[key];
+  selectedNote = null;
+  document.getElementById('noteText').value = '';
+  renderNotesList();
+  renderJsonWithHighlight();
+  persist();
+  log('del_note', `удалена заметка "${key}". Ключ "${key}" исчез из словаря.`);
+}
+
+function saveNote() {
+  if (!selectedNote) { alert('Заметка для сохранения не выбрана!'); return; }
+
+  previousNotesSnapshot = JSON.parse(JSON.stringify(notes));
+  const newText = document.getElementById('noteText').value;
+  notes[selectedNote].текст = newText;
+  renderJsonWithHighlight();
+  persist();
+  log('save_note', `заметка "${selectedNote}" сохранена. notes["${selectedNote}"].текст обновлён.`);
+}
+
+/* =========================================================
+   СТАРТ
+   ========================================================= */
+renderNotesList();
+renderJsonWithHighlight();
+log('init', `загружено заметок: ${Object.keys(notes).length}. Словарь notes готов к работе.`);
+</script>
+
+</body>
+</html>
